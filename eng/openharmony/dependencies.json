@@ -1,0 +1,16 @@
+{
+  "openssl": {
+    "version": "3.5.7",
+    "url": "https://github.com/openssl/openssl/releases/download/openssl-3.5.7/openssl-3.5.7.tar.gz",
+    "archive": "openssl-3.5.7.tar.gz",
+    "sha256": "A8C0D28A529CA480F9F36CF5792E2CD21984552A3C8E4AA11A24AA31AEAC98E8",
+    "license": "Apache-2.0"
+  },
+  "icu": {
+    "version": "78.3",
+    "url": "https://github.com/unicode-org/icu/releases/download/release-78.3/icu4c-78.3-sources.zip",
+    "archive": "icu4c-78.3-sources.zip",
+    "sha256": "20B295E2C23C541AEC17F35C546E4D3136B7AB7D58E3A5FC4E479958A69B1A2C",
+    "license": "Unicode-3.0"
+  }
+}

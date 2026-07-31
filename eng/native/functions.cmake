@@ -257,7 +257,7 @@ function(preprocess_files PreprocessedFilesList)
 endfunction()
 
 function(set_exports_linker_option exports_filename)
-    if(LD_GNU OR LD_SOLARIS OR LD_LLVM)
+    if(CLR_CMAKE_TARGET_OPENHARMONY OR LD_GNU OR LD_SOLARIS OR LD_LLVM)
         # Add linker exports file option
         if(LD_SOLARIS)
             set(EXPORTS_LINKER_OPTION -Wl,-M,${exports_filename} PARENT_SCOPE)

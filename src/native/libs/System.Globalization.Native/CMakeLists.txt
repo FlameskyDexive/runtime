@@ -22,8 +22,24 @@ if(CLR_CMAKE_TARGET_UNIX OR CLR_CMAKE_TARGET_WASI)
     add_compile_options(-Wno-extra-semi-stmt)
     add_compile_options(-Wno-unknown-warning-option)
 
+    if (CLR_CMAKE_TARGET_OPENHARMONY)
+        if (NOT DEFINED ICU_INCLUDE_DIR)
+            message(FATAL_ERROR "ICU_INCLUDE_DIR must point to full ICU headers for OpenHarmony")
+        endif()
+
+        find_path(UCURR_H "unicode/ucurr.h" PATHS ${ICU_INCLUDE_DIR} NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)
+        if(UCURR_H STREQUAL UCURR_H-NOTFOUND)
+            message(FATAL_ERROR "Cannot find unicode/ucurr.h under ICU_INCLUDE_DIR")
+        endif()
+
+        # The NDK exposes a unified ICU stub. It is used for configure-time
+        # symbol checks only; the globalization shim resolves packaged ICU at runtime.
+        find_library(OHOS_ICU icu REQUIRED)
+        set(ICUUC ${OHOS_ICU})
+        set(ICUI18N ${OHOS_ICU})
+        include_directories(${UCURR_H})
     # The mobile configurations in particular bring their own ICU, so skip
-    if (NOT CLR_CMAKE_TARGET_ANDROID AND NOT CLR_CMAKE_TARGET_MACCATALYST AND NOT CLR_CMAKE_TARGET_IOS AND NOT CLR_CMAKE_TARGET_TVOS AND NOT DEFINED CMAKE_ICU_DIR AND NOT CLR_CMAKE_TARGET_BROWSER)
+    elseif (NOT CLR_CMAKE_TARGET_ANDROID AND NOT CLR_CMAKE_TARGET_MACCATALYST AND NOT CLR_CMAKE_TARGET_IOS AND NOT CLR_CMAKE_TARGET_TVOS AND NOT DEFINED CMAKE_ICU_DIR AND NOT CLR_CMAKE_TARGET_BROWSER)
         if (CLR_CMAKE_TARGET_OSX)
             execute_process(COMMAND  brew --prefix OUTPUT_VARIABLE brew_prefix OUTPUT_STRIP_TRAILING_WHITESPACE)
             set(ICU_HOMEBREW_INC_PATH "${brew_prefix}/opt/icu4c/include")
@@ -83,7 +99,7 @@ if (CLR_CMAKE_TARGET_MACCATALYST OR CLR_CMAKE_TARGET_IOS OR CLR_CMAKE_TARGET_TVO
     )
 endif()
 
-if (NOT CLR_CMAKE_TARGET_MACCATALYST AND NOT CLR_CMAKE_TARGET_IOS AND NOT CLR_CMAKE_TARGET_TVOS AND DEFINED CMAKE_ICU_DIR)
+if (NOT CLR_CMAKE_TARGET_OPENHARMONY AND NOT CLR_CMAKE_TARGET_MACCATALYST AND NOT CLR_CMAKE_TARGET_IOS AND NOT CLR_CMAKE_TARGET_TVOS AND DEFINED CMAKE_ICU_DIR)
     include_directories(${CMAKE_ICU_DIR}/include)
     link_libraries(${CMAKE_ICU_DIR}/lib/libicuuc.a ${CMAKE_ICU_DIR}/lib/libicui18n.a ${CMAKE_ICU_DIR}/lib/libicudata.a)
     link_libraries(stdc++)

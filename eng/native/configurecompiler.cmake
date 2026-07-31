@@ -24,6 +24,13 @@ include(${CMAKE_CURRENT_LIST_DIR}/configureoptimization.cmake)
 # Initialize Cmake compiler flags and other variables
 #-----------------------------------------------------
 
+if (CLR_CMAKE_TARGET_OPENHARMONY)
+    # The OHOS SDK sets CMAKE_*_COMPILER_EXTERNAL_TOOLCHAIN even though Clang
+    # does not consume the resulting --gcc-toolchain option for OHOS targets.
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-command-line-argument")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-command-line-argument")
+endif()
+
 if (CLR_CMAKE_HOST_UNIX)
     add_compile_options(-Wall)
     if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")

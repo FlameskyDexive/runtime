@@ -506,7 +506,9 @@ int32_t SystemNative_GetNetworkInterfaces(int32_t * interfaceCount, NetworkInter
                         ecmd.cmd = ETHTOOL_GSET;
                         if (ioctl(socketfd, SIOCETHTOOL, &ifr) == 0)
                         {
-#ifdef TARGET_ANDROID
+#if defined(TARGET_OPENHARMONY)
+                            nii->Speed = (int64_t)(((uint32_t)ecmd.speed_hi << 16) | ecmd.speed);
+#elif defined(TARGET_ANDROID)
                             nii->Speed = (int64_t)ecmd.speed;
 #else
                             nii->Speed = (int64_t)ethtool_cmd_speed(&ecmd);

@@ -77,7 +77,12 @@ endif()
 
 if (NOT CLR_CMAKE_HOST_WIN32)
   # detect linker
-  if (CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+  if (CLR_CMAKE_HOST_OPENHARMONY)
+    execute_process(COMMAND ${CMAKE_LINKER} --version
+      ERROR_QUIET
+      OUTPUT_VARIABLE ldVersionOutput
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+  elseif (CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
     execute_process(COMMAND ${CMAKE_C_COMPILER} -Wl,--version
       ERROR_QUIET
       OUTPUT_VARIABLE ldVersionOutput
@@ -102,7 +107,7 @@ if (NOT CLR_CMAKE_HOST_WIN32)
 endif()
 
 # This introspection depends on CMAKE_STRINGS, which is why it's in this file instead of configureplatform
-if (CLR_CMAKE_HOST_LINUX)
+if (CLR_CMAKE_HOST_LINUX AND NOT CLR_CMAKE_HOST_OPENHARMONY)
   execute_process(
     COMMAND bash -c "if ${CMAKE_STRINGS} \"${CMAKE_SYSROOT}/usr/bin/ldd\" 2>&1 | grep -q musl; then echo musl; fi"
     OUTPUT_VARIABLE CLR_CMAKE_LINUX_MUSL

@@ -119,10 +119,22 @@ if /i "%__Os%" == "openharmony" (
         echo Error: OHOS_SYSROOT must point to the HarmonyOS sysroot.
         exit /B 1
     )
+    if "%OHOS_OPENSSL_ROOT%" == "" (
+        echo Error: OHOS_OPENSSL_ROOT must point to the HarmonyOS OpenSSL dependency.
+        exit /B 1
+    )
+    if "%OHOS_ICU_ROOT%" == "" (
+        echo Error: OHOS_ICU_ROOT must point to the full ICU headers.
+        exit /B 1
+    )
 
     set __ExtraCmakeParams=!__ExtraCmakeParams! "-DCLR_CMAKE_TARGET_OS=openharmony"
     set __ExtraCmakeParams=!__ExtraCmakeParams! "-DCMAKE_TOOLCHAIN_FILE=%OHOS_TOOLCHAIN_FILE%" "-DCMAKE_SYSROOT=%OHOS_SYSROOT%"
     set __ExtraCmakeParams=!__ExtraCmakeParams! "-DOHOS_ARCH=%OHOS_ARCH%" "-DOHOS_PLATFORM=OHOS" "-DOHOS_STL=c++_shared" "-DOHOS_COMPATIBLE_SDK_VERSION=%OHOS_API_LEVEL%"
+    set __ExtraCmakeParams=!__ExtraCmakeParams! "-DOPENSSL_ROOT_DIR=%OHOS_OPENSSL_ROOT%" "-DOPENSSL_INCLUDE_DIR=%OHOS_OPENSSL_ROOT%/include"
+    set __ExtraCmakeParams=!__ExtraCmakeParams! "-DOPENSSL_CRYPTO_LIBRARY=%OHOS_OPENSSL_ROOT%/lib/libcrypto.so" "-DOPENSSL_SSL_LIBRARY=%OHOS_OPENSSL_ROOT%/lib/libssl.so"
+    set __ExtraCmakeParams=!__ExtraCmakeParams! "-DFEATURE_DISTRO_AGNOSTIC_SSL=1"
+    set __ExtraCmakeParams=!__ExtraCmakeParams! "-DICU_INCLUDE_DIR=%OHOS_ICU_ROOT%/include"
     set __ExtraCmakeParams=!__ExtraCmakeParams! "-C" "%__repoRoot%/eng/native/tryrun.cmake" "-C" "%__repoRoot%/eng/native/openharmony.cmake"
 )
 

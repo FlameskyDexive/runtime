@@ -66,6 +66,8 @@ if [[ "$target_os" == "openharmony" ]]; then
     : "${OHOS_ARCH:?OHOS_ARCH must be arm64-v8a or x86_64}"
     : "${OHOS_API_LEVEL:?OHOS_API_LEVEL must be one of 15, 18, 20, 23, or 26}"
     : "${OHOS_SYSROOT:?OHOS_SYSROOT must point to the HarmonyOS sysroot}"
+    : "${OHOS_OPENSSL_ROOT:?OHOS_OPENSSL_ROOT must point to the HarmonyOS OpenSSL dependency}"
+    : "${OHOS_ICU_ROOT:?OHOS_ICU_ROOT must point to the full ICU headers}"
 
     TARGET_BUILD_ARCH="$host_arch"
     export TARGET_BUILD_ARCH
@@ -73,6 +75,10 @@ if [[ "$target_os" == "openharmony" ]]; then
     cmake_extra_defines="$cmake_extra_defines -DCLR_CMAKE_TARGET_OS=openharmony"
     cmake_extra_defines="$cmake_extra_defines -DCMAKE_TOOLCHAIN_FILE=$OHOS_TOOLCHAIN_FILE -DCMAKE_SYSROOT=$OHOS_SYSROOT"
     cmake_extra_defines="$cmake_extra_defines -DOHOS_ARCH=$OHOS_ARCH -DOHOS_PLATFORM=OHOS -DOHOS_STL=c++_shared -DOHOS_COMPATIBLE_SDK_VERSION=$OHOS_API_LEVEL"
+    cmake_extra_defines="$cmake_extra_defines -DOPENSSL_ROOT_DIR=$OHOS_OPENSSL_ROOT -DOPENSSL_INCLUDE_DIR=$OHOS_OPENSSL_ROOT/include"
+    cmake_extra_defines="$cmake_extra_defines -DOPENSSL_CRYPTO_LIBRARY=$OHOS_OPENSSL_ROOT/lib/libcrypto.so -DOPENSSL_SSL_LIBRARY=$OHOS_OPENSSL_ROOT/lib/libssl.so"
+    cmake_extra_defines="$cmake_extra_defines -DFEATURE_DISTRO_AGNOSTIC_SSL=1"
+    cmake_extra_defines="$cmake_extra_defines -DICU_INCLUDE_DIR=$OHOS_ICU_ROOT/include"
 elif [[ "$CROSSCOMPILE" == "1" ]]; then
     platform="$(uname -s | tr '[:upper:]' '[:lower:]')"
     # OSX doesn't use rootfs

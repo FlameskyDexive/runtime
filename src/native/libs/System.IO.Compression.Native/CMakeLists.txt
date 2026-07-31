@@ -85,14 +85,16 @@ if (CLR_CMAKE_TARGET_UNIX OR CLR_CMAKE_TARGET_BROWSER OR CLR_CMAKE_TARGET_WASI)
             set_property(TARGET System.IO.Compression.Native APPEND_STRING PROPERTY LINK_FLAGS ${EXPORTS_LINKER_OPTION})
             set_property(TARGET System.IO.Compression.Native APPEND_STRING PROPERTY LINK_DEPENDS ${EXPORTS_FILE})
 
-            add_custom_command(TARGET System.IO.Compression.Native POST_BUILD
-                COMMENT "Verifying System.IO.Compression.Native entry points against entrypoints.c "
-                COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/../verify-entrypoints.sh
-                    $<TARGET_FILE:System.IO.Compression.Native>
-                    ${CMAKE_CURRENT_SOURCE_DIR}/entrypoints.c
-                    ${CMAKE_NM}
-                VERBATIM
-            )
+            if (NOT (CLR_CMAKE_TARGET_OPENHARMONY AND CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows"))
+                add_custom_command(TARGET System.IO.Compression.Native POST_BUILD
+                    COMMENT "Verifying System.IO.Compression.Native entry points against entrypoints.c "
+                    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/../verify-entrypoints.sh
+                        $<TARGET_FILE:System.IO.Compression.Native>
+                        ${CMAKE_CURRENT_SOURCE_DIR}/entrypoints.c
+                        ${CMAKE_NM}
+                    VERBATIM
+                )
+            endif()
         endif ()
 
         install_with_stripped_symbols (System.IO.Compression.Native PROGRAMS .)

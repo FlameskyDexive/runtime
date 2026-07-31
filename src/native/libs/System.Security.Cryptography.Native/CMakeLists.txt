@@ -113,14 +113,16 @@ if (GEN_SHARED_LIB)
         endif()
     endif()
 
-    add_custom_command(TARGET System.Security.Cryptography.Native.OpenSsl POST_BUILD
-        COMMENT "Verifying System.Security.Cryptography.Native.OpenSsl entry points against entrypoints.c "
-        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/../verify-entrypoints.sh
-            $<TARGET_FILE:System.Security.Cryptography.Native.OpenSsl>
-            ${CMAKE_CURRENT_SOURCE_DIR}/entrypoints.c
-            ${CMAKE_NM}
-        VERBATIM
-    )
+    if (NOT (CLR_CMAKE_TARGET_OPENHARMONY AND CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows"))
+        add_custom_command(TARGET System.Security.Cryptography.Native.OpenSsl POST_BUILD
+            COMMENT "Verifying System.Security.Cryptography.Native.OpenSsl entry points against entrypoints.c "
+            COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/../verify-entrypoints.sh
+                $<TARGET_FILE:System.Security.Cryptography.Native.OpenSsl>
+                ${CMAKE_CURRENT_SOURCE_DIR}/entrypoints.c
+                ${CMAKE_NM}
+            VERBATIM
+        )
+    endif()
 
     target_link_libraries(System.Security.Cryptography.Native.OpenSsl
         PRIVATE
