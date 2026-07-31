@@ -61,7 +61,19 @@ for i in "${@:6}"; do
 done
 
 cmake_extra_defines=
-if [[ "$CROSSCOMPILE" == "1" ]]; then
+if [[ "$target_os" == "openharmony" ]]; then
+    : "${OHOS_TOOLCHAIN_FILE:?OHOS_TOOLCHAIN_FILE must point to the HarmonyOS CMake toolchain}"
+    : "${OHOS_ARCH:?OHOS_ARCH must be arm64-v8a or x86_64}"
+    : "${OHOS_API_LEVEL:?OHOS_API_LEVEL must be one of 15, 18, 20, 23, or 26}"
+    : "${OHOS_SYSROOT:?OHOS_SYSROOT must point to the HarmonyOS sysroot}"
+
+    TARGET_BUILD_ARCH="$host_arch"
+    export TARGET_BUILD_ARCH
+    cmake_extra_defines="$cmake_extra_defines -C $scriptroot/tryrun.cmake -C $scriptroot/openharmony.cmake"
+    cmake_extra_defines="$cmake_extra_defines -DCLR_CMAKE_TARGET_OS=openharmony"
+    cmake_extra_defines="$cmake_extra_defines -DCMAKE_TOOLCHAIN_FILE=$OHOS_TOOLCHAIN_FILE -DCMAKE_SYSROOT=$OHOS_SYSROOT"
+    cmake_extra_defines="$cmake_extra_defines -DOHOS_ARCH=$OHOS_ARCH -DOHOS_PLATFORM=OHOS -DOHOS_STL=c++_shared -DOHOS_COMPATIBLE_SDK_VERSION=$OHOS_API_LEVEL"
+elif [[ "$CROSSCOMPILE" == "1" ]]; then
     platform="$(uname -s | tr '[:upper:]' '[:lower:]')"
     # OSX doesn't use rootfs
     if ! [[ -n "$ROOTFS_DIR" || "$platform" == "darwin" ]]; then

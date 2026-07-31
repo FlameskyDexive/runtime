@@ -1,0 +1,21 @@
+<Project>
+  <PropertyGroup>
+    <TargetOS>openharmony</TargetOS>
+    <TargetArchitecture>arm64</TargetArchitecture>
+    <PortableBuild>true</PortableBuild>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)..\..\OSArch.props" />
+  <Import Project="$(MSBuildThisFileDirectory)..\..\RuntimeIdentifier.props" />
+
+  <Target Name="ValidateOpenHarmony">
+    <Error Condition="'$(PortableOS)' != 'linux-musl'" Text="PortableOS was $(PortableOS)" />
+    <Error Condition="'$(PortableTargetRid)' != 'linux-musl-arm64'" Text="PortableTargetRid was $(PortableTargetRid)" />
+    <Error Condition="'$(TargetsOpenHarmony)' != 'true'" Text="TargetsOpenHarmony was $(TargetsOpenHarmony)" />
+    <Error Condition="'$(TargetsLinux)' != 'true'" Text="TargetsLinux was $(TargetsLinux)" />
+    <Error Condition="'$(TargetsLinuxMusl)' != 'true'" Text="TargetsLinuxMusl was $(TargetsLinuxMusl)" />
+    <Error Condition="'$(TargetsUnix)' != 'true'" Text="TargetsUnix was $(TargetsUnix)" />
+    <Error Condition="'$(TargetsMobile)' != 'true'" Text="TargetsMobile was $(TargetsMobile)" />
+    <Message Importance="High" Text="OpenHarmony RID contract: $(PortableTargetRid)" />
+  </Target>
+</Project>

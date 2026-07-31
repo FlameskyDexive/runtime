@@ -22,7 +22,9 @@ set __Arch=%4
 set __Os=%5
 set __CmakeGenerator=Visual Studio
 set __UseEmcmake=0
-if /i "%__Ninja%" == "1" (
+if /i "%__Os%" == "openharmony" (
+    set __CmakeGenerator=Ninja
+) else if /i "%__Ninja%" == "1" (
     set __CmakeGenerator=Ninja
 ) else (
     if /i NOT "%__Arch%" == "wasm" (
@@ -69,7 +71,7 @@ if /i "%__Arch%" == "wasm" (
         set __CmakeGenerator=Ninja
         set __ExtraCmakeParams=%__ExtraCmakeParams% -DCLR_CMAKE_TARGET_OS=wasi -DCLR_CMAKE_TARGET_ARCH=wasm "-DWASI_SDK_PREFIX=!WASI_SDK_PATH!" "-DCMAKE_TOOLCHAIN_FILE=!WASI_SDK_PATH!/share/cmake/wasi-sdk-p2.cmake" "-DCMAKE_SYSROOT=!WASI_SDK_PATH!share/wasi-sysroot" "-DCMAKE_CROSSCOMPILING_EMULATOR=node --experimental-wasm-bigint --experimental-wasi-unstable-preview1"
     )
-) else (
+) else if /i NOT "%__Os%" == "openharmony" (
     set __ExtraCmakeParams=%__ExtraCmakeParams%  "-DCMAKE_SYSTEM_VERSION=10.0"
 )
 
@@ -98,6 +100,30 @@ if /i "%__Os%" == "android" (
     )
 
     set __ExtraCmakeParams=!__ExtraCmakeParams! "-DCMAKE_TOOLCHAIN_FILE='%ANDROID_NDK_ROOT:\=/%/build/cmake/android.toolchain.cmake'" "-C %__repoRoot%/eng/native/tryrun.cmake"
+)
+
+if /i "%__Os%" == "openharmony" (
+    if "%OHOS_TOOLCHAIN_FILE%" == "" (
+        echo Error: OHOS_TOOLCHAIN_FILE must point to the HarmonyOS CMake toolchain.
+        exit /B 1
+    )
+    if "%OHOS_ARCH%" == "" (
+        echo Error: OHOS_ARCH must be arm64-v8a or x86_64.
+        exit /B 1
+    )
+    if "%OHOS_API_LEVEL%" == "" (
+        echo Error: OHOS_API_LEVEL must be one of 15, 18, 20, 23, or 26.
+        exit /B 1
+    )
+    if "%OHOS_SYSROOT%" == "" (
+        echo Error: OHOS_SYSROOT must point to the HarmonyOS sysroot.
+        exit /B 1
+    )
+
+    set __ExtraCmakeParams=!__ExtraCmakeParams! "-DCLR_CMAKE_TARGET_OS=openharmony"
+    set __ExtraCmakeParams=!__ExtraCmakeParams! "-DCMAKE_TOOLCHAIN_FILE=%OHOS_TOOLCHAIN_FILE%" "-DCMAKE_SYSROOT=%OHOS_SYSROOT%"
+    set __ExtraCmakeParams=!__ExtraCmakeParams! "-DOHOS_ARCH=%OHOS_ARCH%" "-DOHOS_PLATFORM=OHOS" "-DOHOS_STL=c++_shared" "-DOHOS_COMPATIBLE_SDK_VERSION=%OHOS_API_LEVEL%"
+    set __ExtraCmakeParams=!__ExtraCmakeParams! "-C" "%__repoRoot%/eng/native/tryrun.cmake" "-C" "%__repoRoot%/eng/native/openharmony.cmake"
 )
 
 :loop
