@@ -70,6 +70,7 @@ typedef int32_t             HRESULT;
 
 #define S_OK  0x0
 #define E_FAIL 0x80004005
+#define E_POINTER 0x80004003
 #define E_OUTOFMEMORY 0x8007000E
 
 typedef WCHAR *             LPWSTR;
