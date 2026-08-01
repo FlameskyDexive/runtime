@@ -28,7 +28,10 @@ if(CLR_CMAKE_HOST_UNIX)
   endif(CLR_CMAKE_TARGET_ARCH_AMD64 OR CLR_CMAKE_TARGET_ARCH_I386)
 endif (CLR_CMAKE_HOST_UNIX)
 
-if(CLR_CMAKE_TARGET_ANDROID)
+# OpenHarmony's dynamic loader has the same TLS restrictions as Android.
+# NativeAOT libraries therefore use emulated TLS so they can be loaded from
+# a NAPI host shared object instead of an executable main module.
+if(CLR_CMAKE_TARGET_ANDROID OR CLR_CMAKE_TARGET_OPENHARMONY)
     add_definitions(-DFEATURE_EMULATED_TLS)
     set(FEATURE_JAVAMARSHAL 1)
 endif()

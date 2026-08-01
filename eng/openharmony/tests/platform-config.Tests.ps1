@@ -88,6 +88,16 @@ Describe 'OpenHarmony runtime platform configuration' {
         $compiler | Should Match 'CLR_CMAKE_TARGET_OPENHARMONY[\s\S]*Wno-unused-command-line-argument'
     }
 
+    It 'enables emulated TLS for loadable OpenHarmony NativeAOT modules' {
+        $nativeAot = Get-Content -LiteralPath (Join-Path $repoRoot 'src\coreclr\nativeaot\CMakeLists.txt') -Raw
+        $vm = Get-Content -LiteralPath (Join-Path $repoRoot 'src\coreclr\vm\CMakeLists.txt') -Raw
+
+        $nativeAot | Should Match 'CLR_CMAKE_TARGET_ANDROID OR CLR_CMAKE_TARGET_OPENHARMONY'
+        $nativeAot | Should Match 'FEATURE_EMULATED_TLS'
+        $vm | Should Match 'CLR_CMAKE_TARGET_ANDROID OR CLR_CMAKE_TARGET_OPENHARMONY'
+        $vm | Should Match 'FEATURE_EMULATED_TLS'
+    }
+
     It 'maps the OHOS CMake system and SDK architectures to .NET host flags' {
         $platform = Get-Content -LiteralPath (Join-Path $repoRoot 'eng\native\configureplatform.cmake') -Raw
 

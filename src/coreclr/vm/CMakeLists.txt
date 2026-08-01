@@ -16,9 +16,9 @@ include_directories(${CLR_SRC_NATIVE_DIR}/libs/Common)
 add_definitions(-DUNICODE)
 add_definitions(-D_UNICODE)
 
-if(CLR_CMAKE_TARGET_ANDROID)
+if(CLR_CMAKE_TARGET_ANDROID OR CLR_CMAKE_TARGET_OPENHARMONY)
     add_definitions(-DFEATURE_EMULATED_TLS)
-endif(CLR_CMAKE_TARGET_ANDROID)
+endif()
 
 if(FEATURE_AUTO_TRACE)
     add_definitions(-DFEATURE_AUTO_TRACE)
