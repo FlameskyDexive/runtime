@@ -1,0 +1,102 @@
+name: .NET 10 OpenHarmony API26 runtime
+
+on:
+  push:
+    branches: [openharmony/10.0.10-api26]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: '10.0.x'
+
+jobs:
+  source-and-tests:
+    name: Source baseline and OpenHarmony tests
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Verify .NET 10 source baseline
+        shell: pwsh
+        run: |
+          if (-not (git cat-file -e v10.0.10^{commit})) { throw 'The v10.0.10 source tag is missing.' }
+          git merge-base --is-ancestor v10.0.10 HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'OpenHarmony changes must remain based on v10.0.10.' }
+          git diff --check
+      - name: Select the compatible Pester runtime
+        shell: powershell
+        run: |
+          if (-not (Get-Module -ListAvailable -Name Pester -RequiredVersion 3.4.0)) {
+            Install-Module Pester -RequiredVersion 3.4.0 -Scope CurrentUser -Force -SkipPublisherCheck
+          }
+          Import-Module Pester -RequiredVersion 3.4.0 -Force
+      - name: Run OpenHarmony Pester suite
+        shell: powershell
+        run: |
+          Import-Module Pester -RequiredVersion 3.4.0 -Force
+          New-Item -ItemType Directory -Force artifacts | Out-Null
+          $result = Invoke-Pester -Script .\eng\openharmony\tests -OutputFormat NUnitXml -OutputFile .\artifacts\openharmony-pester.xml -PassThru
+          if ($result.FailedCount -ne 0) { throw "OpenHarmony Pester suite failed: $($result.FailedCount) test(s)." }
+
+  toolchain-matrix:
+    name: SDK toolchain API${{ matrix.api }} ${{ matrix.architecture }}
+    runs-on: [self-hosted, Windows, harmonyos-sdk]
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [15, 18, 20, 23, 26]
+        architecture: [arm64, x64]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve SDK root
+        shell: pwsh
+        run: |
+          $sdkRoot = if ($env:OPENHARMONY_SDK_ROOT) { $env:OPENHARMONY_SDK_ROOT } else { Join-Path $env:LOCALAPPDATA 'OpenHarmony\Sdk' }
+          if (-not (Test-Path -LiteralPath $sdkRoot)) { throw "HarmonyOS SDK root not found: $sdkRoot" }
+          "OPENHARMONY_SDK_ROOT=$sdkRoot" >> $env:GITHUB_ENV
+      - name: Validate SDK and generate target properties
+        shell: pwsh
+        run: |
+          $result = & ./eng/openharmony/validate-sdk.ps1 -SdkRoot $env:OPENHARMONY_SDK_ROOT -ApiLevel ${{ matrix.api }} -Architecture ${{ matrix.architecture }}
+          $result | Format-List
+          $result.TargetTriple | Should -BeLike '*-linux-ohos'
+          $result.OhosArch | Should -BeIn @('arm64-v8a', 'x86_64')
+      - name: Compile toolchain smoke for the full matrix
+        if: matrix.api == 15 && matrix.architecture == 'arm64'
+        shell: pwsh
+        run: ./eng/openharmony/tests/run-toolchain-matrix.ps1 -SdkRoot $env:OPENHARMONY_SDK_ROOT -ApiLevels 15,18,20,23,26 -Architectures arm64,x64
+
+  nativeaot-api15:
+    name: NativeAOT API15 ${{ matrix.architecture }}
+    needs: [source-and-tests, toolchain-matrix]
+    runs-on: [self-hosted, Windows, harmonyos-sdk]
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: [arm64, x64]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve SDK root
+        shell: pwsh
+        run: |
+          $sdkRoot = if ($env:OPENHARMONY_SDK_ROOT) { $env:OPENHARMONY_SDK_ROOT } else { Join-Path $env:LOCALAPPDATA 'OpenHarmony\Sdk' }
+          "OPENHARMONY_SDK_ROOT=$sdkRoot" >> $env:GITHUB_ENV
+      - name: Build API15 NativeAOT runtime
+        shell: pwsh
+        run: ./eng/openharmony/build-runtime.ps1 -SdkRoot $env:OPENHARMONY_SDK_ROOT -ApiLevel 15 -Architecture ${{ matrix.architecture }} -Configuration Release
+      - name: Verify ELF and provenance
+        shell: pwsh
+        run: ./eng/openharmony/verify-runtime.ps1 -SdkRoot $env:OPENHARMONY_SDK_ROOT -ApiLevel 15 -Architecture ${{ matrix.architecture }} -Configuration Release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runtime-api15-${{ matrix.architecture }}
+          path: |
+            artifacts/bin/coreclr/openharmony.${{ matrix.architecture }}.Release/aotsdk
+            artifacts/bin/microsoft.netcore.app.runtime.linux-musl-*/Release/runtimes/linux-musl-*/native
