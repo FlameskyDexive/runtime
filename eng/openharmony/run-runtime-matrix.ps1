@@ -86,7 +86,9 @@ function Get-UnresolvedSymbols {
         if ($LASTEXITCODE -ne 0) {
             throw "llvm-nm failed for '$($library.FullName)' with exit code $LASTEXITCODE."
         }
-        $output | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+        $output |
+            Where-Object { $_ -is [string] -and -not [string]::IsNullOrWhiteSpace($_) } |
+            ForEach-Object { [string]$_ }
     }
     return @($symbols | Sort-Object -Unique)
 }

@@ -126,6 +126,14 @@ Describe 'OpenHarmony runtime artifact verification' {
         $content | Should -Match 'status\s*=\s*if\s*\(\$ConfigureOnly\)\s*\{\s*''CONFIGURED''\s*\}\s*else\s*\{\s*''PASS'''
     }
 
+    It 'records unresolved symbols as plain strings and ignores llvm-nm diagnostics' {
+        $scriptPath = Join-Path $repoRoot 'eng\openharmony\run-runtime-matrix.ps1'
+        $content = Get-Content -LiteralPath $scriptPath -Raw
+
+        $content | Should -Match '\$_\s+-is\s+\[string\]'
+        $content | Should -Match '\[string\]\$_'
+    }
+
     It 'verifies the complete API15 arm64 runtime output' -Skip:(-not $hasCurrentApi15Arm64Fixture) {
         $scriptPath = Join-Path $repoRoot 'eng\openharmony\verify-runtime.ps1'
         Test-Path -LiteralPath $scriptPath -PathType Leaf | Should -Be $true
