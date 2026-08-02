@@ -1,5 +1,9 @@
 $VersionFolder = $PSScriptRoot
 $RepoRoot = (Resolve-Path "$VersionFolder/../../../").Path.TrimEnd("\")
+$artifactsObjDir = $env:__ArtifactsObjDir
+if ([string]::IsNullOrWhiteSpace($artifactsObjDir)) {
+    $artifactsObjDir = Join-Path $RepoRoot 'artifacts\obj'
+}
 
 Get-ChildItem -Path "$VersionFolder" -Filter "_version.*" | ForEach-Object {
     $path = $_.FullName
@@ -9,7 +13,7 @@ Get-ChildItem -Path "$VersionFolder" -Filter "_version.*" | ForEach-Object {
         if (-not $commit) { $commit = "N/A" }
         $substitute = "static char sccsid[] __attribute__((used)) = `"@(#)Version N/A @Commit: $commit`";"
         $version_file_contents = Get-Content -Path $path | ForEach-Object { $_ -replace "^static.*", $substitute }
-        $version_file_destination = "$RepoRoot\\artifacts\\obj\\_version.c"
+        $version_file_destination = Join-Path $artifactsObjDir '_version.c'
         $current_contents = ""
         $is_placeholder_file = $false
         if (Test-Path -Path $version_file_destination) {
@@ -21,7 +25,7 @@ Get-ChildItem -Path "$VersionFolder" -Filter "_version.*" | ForEach-Object {
         if ($is_placeholder_file -and $version_file_contents -ne $current_contents) {
             $version_file_contents | Set-Content -Path $version_file_destination
         }
-    } elseif (-not (Test-Path -Path "$RepoRoot\\artifacts\\obj\\$($_.Name)")) {
-        Copy-Item -Path $path -Destination "$RepoRoot\\artifacts\\obj\\"
+    } elseif (-not (Test-Path -Path (Join-Path $artifactsObjDir $_.Name))) {
+        Copy-Item -Path $path -Destination $artifactsObjDir
     }
 }

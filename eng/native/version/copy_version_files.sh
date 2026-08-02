@@ -2,6 +2,7 @@
 
 __VersionFolder="$(cd "$(dirname "$0")"; pwd -P)"
 __RepoRoot="$(cd "$(dirname "$__VersionFolder")/../../"; pwd -P)"
+__ArtifactsObjDir="${__ArtifactsObjDir:-$__RepoRoot/artifacts/obj}"
 
 for path in "${__VersionFolder}/"*{.h,.c}; do
     if [[ "$(basename $path)" == _version.c ]]; then
@@ -13,11 +14,11 @@ for path in "${__VersionFolder}/"*{.h,.c}; do
         commit="${commit:-N/A}"
         substitute="$(printf 'static char sccsid[] __attribute__((used)) = "@(#)Version N/A @Commit: %s";\n' "$commit")"
         version_file_contents="$(cat "$path" | sed "s|^static.*|$substitute|")"
-        version_file_destination="$__RepoRoot/artifacts/obj/_version.c"
+        version_file_destination="$__ArtifactsObjDir/_version.c"
         current_contents=
         is_placeholder_file=
         if [[ -e "$version_file_destination" ]]; then
-            current_contents="$(<"$__RepoRoot/artifacts/obj/_version.c")"
+            current_contents="$(<"$__ArtifactsObjDir/_version.c")"
             # If the current file has the version placeholder this script uses, we can update it
             # to have the current commit. Otherwise, use the current version file that has the actual product version.
             is_placeholder_file="$(echo $current_contents | grep "@(#)Version N/A @Commit:")"
@@ -28,7 +29,7 @@ for path in "${__VersionFolder}/"*{.h,.c}; do
         if [[ "$is_placeholder_file" && "$version_file_contents" != "$current_contents" ]]; then
             echo "$version_file_contents" > "$version_file_destination"
         fi
-    elif [[ ! -e "$__RepoRoot/artifacts/obj/$(basename "$path")" ]]; then
-        cp "$path" "$__RepoRoot/artifacts/obj/"
+    elif [[ ! -e "$__ArtifactsObjDir/$(basename "$path")" ]]; then
+        cp "$path" "$__ArtifactsObjDir/"
     fi
 done

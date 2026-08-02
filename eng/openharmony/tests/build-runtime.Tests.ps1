@@ -87,8 +87,14 @@ Describe 'OpenHarmony runtime build invocation' {
         $unixBuild = Get-Content -LiteralPath (Join-Path $repoRoot 'src\coreclr\build-runtime.sh') -Raw
 
         $windowsBuild | Should -Match 'if not defined __RootBinDir set "__RootBinDir=%__RepoRootDir%\\artifacts"'
-        $windowsBuild | Should -Match 'set "__ArtifactsIntermediatesDir=%__RootBinDir%\\obj\\coreclr\\"'
+        $windowsBuild | Should -Match 'CLR_ARTIFACTS_OBJ_DIR=!__ArtifactsObjDir!'
+        $windowsBuild | Should -Match 'set "__ArtifactsObjDir=%__RootBinDir%\\obj"'
+        $windowsBuild | Should -Match 'set "__ArtifactsIntermediatesDir=%__ArtifactsObjDir%\\coreclr\\"'
         $unixBuild | Should -Match 'if \[\[ -z "\$\{__RootBinDir:-\}" \]\]'
+        $unixBuild | Should -Match 'CLR_ARTIFACTS_OBJ_DIR=\$__ArtifactsObjDir'
+
+        $configurePaths = Get-Content -LiteralPath (Join-Path $repoRoot 'eng\native\configurepaths.cmake') -Raw
+        $configurePaths | Should -Match 'NOT DEFINED CLR_ARTIFACTS_OBJ_DIR'
     }
 
     It 'uses API15 and the official arm64 toolchain without a Linux rootfs' {
