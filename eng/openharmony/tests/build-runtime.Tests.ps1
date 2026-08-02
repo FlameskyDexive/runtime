@@ -3,6 +3,39 @@ BeforeAll {
     Import-Module $modulePath -Force
 }
 
+Describe 'OpenHarmony configured linker dependencies' {
+    It 'authorizes deviceinfo from the effective <SdkStyle> shared linker flags' -ForEach @(
+        @{ SdkStyle = 'API23 direct'; Flags = '--rtlib=compiler-rt -lunwind -ldeviceinfo_ndk.z' }
+        @{ SdkStyle = 'API26 variable'; Flags = '--rtlib=compiler-rt -fuse-ld=lld -ldeviceinfo_ndk.z' }
+    ) {
+        $cachePath = Join-Path $TestDrive "$($SdkStyle.Replace(' ', '-')).txt"
+        "CMAKE_SHARED_LINKER_FLAGS:STRING=$Flags" | Set-Content -LiteralPath $cachePath -Encoding Ascii
+
+        @(Get-OpenHarmonyInjectedSharedDependencies -CMakeCachePath $cachePath) |
+            Should -Be @('libdeviceinfo_ndk.z.so')
+    }
+
+    It 'ignores commented and inactive toolchain declarations absent from effective flags' {
+        $cachePath = Join-Path $TestDrive 'inactive-deviceinfo.txt'
+        @(
+            '# toolchain source mentioned -ldeviceinfo_ndk.z',
+            'CMAKE_SHARED_LINKER_FLAGS:STRING=--rtlib=compiler-rt -fuse-ld=lld'
+        ) | Set-Content -LiteralPath $cachePath -Encoding Ascii
+
+        @(Get-OpenHarmonyInjectedSharedDependencies -CMakeCachePath $cachePath) |
+            Should -BeNullOrEmpty
+    }
+
+    It 'does not accept a dependency flag that only starts with the known name' {
+        $cachePath = Join-Path $TestDrive 'lookalike-deviceinfo.txt'
+        'CMAKE_SHARED_LINKER_FLAGS:STRING=-ldeviceinfo_ndk.z.untrusted' |
+            Set-Content -LiteralPath $cachePath -Encoding Ascii
+
+        @(Get-OpenHarmonyInjectedSharedDependencies -CMakeCachePath $cachePath) |
+            Should -BeNullOrEmpty
+    }
+}
+
 Describe 'OpenHarmony runtime build invocation' {
     It 'uses API15 and the official arm64 toolchain without a Linux rootfs' {
         $repoRoot = 'C:\runtime'

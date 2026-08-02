@@ -67,6 +67,39 @@ function New-OpenHarmonyBuildInvocation {
     }
 }
 
+function Get-OpenHarmonyInjectedSharedDependencies {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $CMakeCachePath
+    )
+
+    if (-not (Test-Path -LiteralPath $CMakeCachePath -PathType Leaf)) {
+        throw "OpenHarmony native CMake cache was not found: '$CMakeCachePath'."
+    }
+
+    $prefix = 'CMAKE_SHARED_LINKER_FLAGS:'
+    $entries = @(Get-Content -LiteralPath $CMakeCachePath | Where-Object { $_.StartsWith($prefix, [StringComparison]::Ordinal) })
+    if ($entries.Count -ne 1) {
+        throw "Expected exactly one CMAKE_SHARED_LINKER_FLAGS entry in '$CMakeCachePath'; found $($entries.Count)."
+    }
+
+    $separator = $entries[0].IndexOf('=', [StringComparison]::Ordinal)
+    if ($separator -lt 0) {
+        throw "Malformed CMAKE_SHARED_LINKER_FLAGS entry in '$CMakeCachePath'."
+    }
+
+    $tokens = @(($entries[0].Substring($separator + 1) -split '\s+') | ForEach-Object { $_.Trim('"', "'") })
+    $knownDependencies = [ordered]@{
+        '-ldeviceinfo_ndk.z' = 'libdeviceinfo_ndk.z.so'
+    }
+    foreach ($entry in $knownDependencies.GetEnumerator()) {
+        if ($tokens -contains $entry.Key) {
+            $entry.Value
+        }
+    }
+}
+
 function Invoke-OpenHarmonyBuild {
     [CmdletBinding()]
     param(
@@ -108,4 +141,4 @@ function Invoke-OpenHarmonyBuild {
     }
 }
 
-Export-ModuleMember -Function New-OpenHarmonyBuildInvocation, Invoke-OpenHarmonyBuild
+Export-ModuleMember -Function New-OpenHarmonyBuildInvocation, Invoke-OpenHarmonyBuild, Get-OpenHarmonyInjectedSharedDependencies

@@ -78,6 +78,17 @@ Describe 'OpenHarmony runtime artifact verification' {
         $content | Should -Match 'sourceDirty'
     }
 
+    It 'allows only platform dependencies present in the effective CMake linker configuration' {
+        $scriptPath = Join-Path $repoRoot 'eng\openharmony\verify-runtime.ps1'
+        $content = Get-Content -LiteralPath $scriptPath -Raw
+
+        $content | Should -Match 'CMakeCache\.txt'
+        $content | Should -Match 'Get-OpenHarmonyInjectedSharedDependencies'
+        $content | Should -Match '\$missingDependencies'
+        $content | Should -Match '\$unexpectedDependencies'
+        $content | Should -Not -Match 'Get-Content\s+-LiteralPath\s+\$sdk\.ToolchainFile'
+    }
+
     It 'keeps native dependencies at the API15 compatibility baseline' {
         $scriptPath = Join-Path $repoRoot 'eng\openharmony\prepare-dependencies.ps1'
 

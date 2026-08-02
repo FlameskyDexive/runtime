@@ -13,6 +13,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+Import-Module (Join-Path $PSScriptRoot 'OpenHarmonyBuild.psm1') -Force
 $sdk = & (Join-Path $PSScriptRoot 'validate-sdk.ps1') `
     -SdkRoot $SdkRoot `
     -ApiLevel $ApiLevel `
@@ -69,6 +70,8 @@ $runtimePack = Join-Path $repoRoot "artifacts\bin\microsoft.netcore.app.runtime.
 $runtimePackRoot = Join-Path $repoRoot "artifacts\bin\microsoft.netcore.app.runtime.linux-musl-$ridArchitecture\$Configuration"
 $managedOutput = Join-Path $runtimePack 'lib\net10.0'
 $nativeOutput = Join-Path $runtimePack 'native'
+$nativeIntermediates = Join-Path $repoRoot "artifacts\obj\native\net10.0-openharmony-$Configuration-$Architecture"
+$cmakeCachePath = Join-Path $nativeIntermediates 'CMakeCache.txt'
 
 $sourceCommit = Get-GitValue -Arguments @('rev-parse', 'HEAD')
 $sourceDirty = -not [string]::IsNullOrWhiteSpace((Get-GitValue -Arguments @('status', '--porcelain', '--untracked-files=normal')))
@@ -189,6 +192,14 @@ $expectedDependencies = @{
     'libcrypto.so.3' = @('libc.so')
     'libssl.so.3' = @('libc.so', 'libcrypto.so.3')
 }
+$toolchainInjectedDependencies = @(Get-OpenHarmonyInjectedSharedDependencies -CMakeCachePath $cmakeCachePath)
+$runtimeNativeLibraries = @(
+    'libSystem.Globalization.Native.so',
+    'libSystem.IO.Compression.Native.so',
+    'libSystem.IO.Ports.Native.so',
+    'libSystem.Native.so',
+    'libSystem.Security.Cryptography.Native.OpenSsl.so'
+)
 foreach ($elfPath in $nativeElfFiles) {
     $libraryName = Split-Path $elfPath -Leaf
     $dynamic = Invoke-CheckedTool -Tool $readElf -Arguments @('-d', $elfPath)
@@ -205,9 +216,14 @@ foreach ($elfPath in $nativeElfFiles) {
         }
     } | Sort-Object -Unique)
     $expected = @($expectedDependencies[$libraryName] | Sort-Object)
-    $dependencyDifferences = @(Compare-Object -ReferenceObject $expected -DifferenceObject $dependencies)
-    if ($dependencyDifferences.Count -ne 0) {
-        throw "Unexpected dynamic dependencies in '$elfPath': $($dependencies -join ', ')"
+    $allowed = @($expected)
+    if ($libraryName -in $runtimeNativeLibraries) {
+        $allowed += $toolchainInjectedDependencies
+    }
+    $missingDependencies = @($expected | Where-Object { $_ -notin $dependencies })
+    $unexpectedDependencies = @($dependencies | Where-Object { $_ -notin $allowed })
+    if ($missingDependencies.Count -ne 0 -or $unexpectedDependencies.Count -ne 0) {
+        throw "Invalid dynamic dependencies in '$elfPath': missing [$($missingDependencies -join ', ')], unexpected [$($unexpectedDependencies -join ', ')]."
     }
 }
 
