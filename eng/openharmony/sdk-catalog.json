@@ -1,0 +1,242 @@
+{
+  "schemaVersion": 1,
+  "supportedApis": [
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    26
+  ],
+  "buildApis": [
+    13,
+    14,
+    15,
+    18,
+    20,
+    23,
+    26
+  ],
+  "emulatorApis": [
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    26
+  ],
+  "nativeUnavailableApis": [
+    16,
+    17,
+    19,
+    21,
+    22,
+    24
+  ],
+  "nativeUnavailable": [
+    {
+      "apiLevel": 16,
+      "reason": "No independent Native SDK package is installable for this API; it is not processed as a build target and remains an emulator run target."
+    },
+    {
+      "apiLevel": 17,
+      "reason": "No independent Native SDK package is installable for this API; it is not processed as a build target and remains an emulator run target."
+    },
+    {
+      "apiLevel": 19,
+      "reason": "No independent Native SDK package is installable for this API; it is not processed as a build target and remains an emulator run target."
+    },
+    {
+      "apiLevel": 21,
+      "reason": "No independent Native SDK package is installable for this API; it is not processed as a build target and remains an emulator run target."
+    },
+    {
+      "apiLevel": 22,
+      "reason": "No independent Native SDK package is installable for this API; it is not processed as a build target and remains an emulator run target."
+    },
+    {
+      "apiLevel": 24,
+      "reason": "No independent Native SDK package is installable for this API; it is not processed as a build target and remains an emulator run target."
+    }
+  ],
+  "excludedApis": [
+    25
+  ],
+  "exclusions": [
+    {
+      "apiLevel": 25,
+      "reason": "API 25 is intentionally unsupported because no Native SDK or system image exists."
+    }
+  ],
+  "packages": [
+    {
+      "apiLevel": 13,
+      "sdkFolderName": "13",
+      "version": "5.0.1.111",
+      "releaseType": "Release",
+      "manifestSha256": "435560BC7D74005A306E8EA04110FC19E5392556D6B10493CC9DD93F7E7F1853"
+    },
+    {
+      "apiLevel": 14,
+      "sdkFolderName": "14",
+      "version": "5.0.2.123",
+      "releaseType": "Release",
+      "manifestSha256": "0BC0ED1C01345BBA9B453E93F5FAF4B4F55F9D17850161D58742A734E324956C"
+    },
+    {
+      "apiLevel": 15,
+      "sdkFolderName": "15",
+      "version": "5.0.3.135",
+      "releaseType": "Release",
+      "manifestSha256": "0E0DB0B79DF8A26E18B7BD17FCCED06242D66C8315822F4037A357BC211CECC8"
+    },
+    {
+      "apiLevel": 18,
+      "sdkFolderName": "18",
+      "version": "5.1.0.107",
+      "releaseType": "Release",
+      "manifestSha256": "16CAC01A0F3829A89353E7117E823DA2A5D4F3BE1E6C3250024409F39F85F987"
+    },
+    {
+      "apiLevel": 20,
+      "sdkFolderName": "20",
+      "version": "6.0.0.47",
+      "releaseType": "Release",
+      "manifestSha256": "E7D4E0F7970EC5D8430F2935DC22B31EFFE06D9E8C725A16FF0706F8C60EC22C"
+    },
+    {
+      "apiLevel": 23,
+      "sdkFolderName": "23",
+      "version": "6.1.0.32",
+      "releaseType": "Release",
+      "manifestSha256": "475FA68431FCEA117512CCEA5BF303D0FA6BD9A2C2E4C6DCBE6567FD1CED3B44"
+    },
+    {
+      "apiLevel": 26,
+      "sdkFolderName": "26.0.0",
+      "version": "26.0.0.25",
+      "releaseType": "Beta",
+      "manifestSha256": "EE77347D990B6F99C07777993FB372E5FB55AA08E76A4C82E3253F8F9E094B16"
+    }
+  ],
+  "systemImages": [
+    {
+      "apiLevel": 13,
+      "version": "5.0.0.112",
+      "platformVersion": "5.0.1",
+      "releaseType": "Release",
+      "path": "system-image,HarmonyOS-5.0.1,phone_x86",
+      "manifestSha256": "A1FB8B030BAC49412FC72D60FD4EC208148C598E7B82ADD5092FAA064AAF85F7"
+    },
+    {
+      "apiLevel": 14,
+      "version": "5.0.0.124",
+      "platformVersion": "5.0.2",
+      "releaseType": "Release",
+      "path": "system-image,HarmonyOS-5.0.2,phone_x86",
+      "manifestSha256": "C4754CE173171413203F9E926664D92F6BA2A4909CA9BE6FFBFD2B9F8353A359"
+    },
+    {
+      "apiLevel": 15,
+      "version": "5.0.0.135",
+      "platformVersion": "5.0.3",
+      "releaseType": "Release",
+      "path": "system-image,HarmonyOS-5.0.3,phone_x86",
+      "manifestSha256": "E4FB6479745D889552CD9D81F29C4802728B6A2F1F6B0F3B9F0FEB919C1CBD9A"
+    },
+    {
+      "apiLevel": 16,
+      "version": "5.0.0.150",
+      "platformVersion": "5.0.4",
+      "releaseType": "Release",
+      "path": "system-image,HarmonyOS-5.0.4,phone_x86",
+      "manifestSha256": "301BACB4EB3BF3C5C9FBA50D3EF226CCCFDD070C49AC182CF452B2E79899F9C6"
+    },
+    {
+      "apiLevel": 17,
+      "version": "5.0.1.121",
+      "platformVersion": "5.0.5",
+      "releaseType": "Release",
+      "path": "system-image,HarmonyOS-5.0.5,phone_x86",
+      "manifestSha256": "95929A43722F2B6D7FB6D946475D77A3905F07251446F1C746FD921AFB649941"
+    },
+    {
+      "apiLevel": 18,
+      "version": "5.1.0.110",
+      "platformVersion": "5.1.0",
+      "releaseType": "Release",
+      "path": "system-image,HarmonyOS-5.1.0,phone_all_x86",
+      "manifestSha256": "462AEEC3FEBBCB986D4A977D93C22C02B64C592B24E2833C58F94C90643DC91F"
+    },
+    {
+      "apiLevel": 19,
+      "version": "5.1.0.235",
+      "platformVersion": "5.1.1",
+      "releaseType": "Release",
+      "path": "system-image,HarmonyOS-5.1.1,phone_all_x86",
+      "manifestSha256": "CB70E7AF153AD0A5F9808DB4276FC9EE169991085B0AB08DCD6B871899B6B8A2"
+    },
+    {
+      "apiLevel": 20,
+      "version": "6.0.0.48",
+      "platformVersion": "6.0.0",
+      "releaseType": "Release",
+      "path": "system-image,HarmonyOS-6.0.0,phone_all_x86",
+      "manifestSha256": "083A1DD44FDFA8773B3BAF1A14FCACB8B808B242A72F11A0B350B4B385462256"
+    },
+    {
+      "apiLevel": 21,
+      "version": "6.0.0.112",
+      "platformVersion": "6.0.1",
+      "releaseType": "Release",
+      "path": "system-image,HarmonyOS-6.0.1,phone_all_x86",
+      "manifestSha256": "08956D923EB27F1874ABA46307223D05384FE8F4D305F403FABF724B46E67825"
+    },
+    {
+      "apiLevel": 22,
+      "version": "6.0.0.130",
+      "platformVersion": "6.0.2",
+      "releaseType": "Release",
+      "path": "system-image,HarmonyOS-6.0.2,phone_all_x86",
+      "manifestSha256": "D4BBB37E0288E2FCA88DF2E3FB1FACE1B8894131CB6CF6680CB37A86DE809ADA"
+    },
+    {
+      "apiLevel": 23,
+      "version": "6.1.0.115",
+      "platformVersion": "6.1.0",
+      "releaseType": "Release",
+      "path": "system-image,HarmonyOS-6.0.31,phone_all_x86",
+      "manifestSha256": "FEB8D741AFFFAA310EC4F7616736DF93E23A4DD52C5E3A0E752FDCD5FB552F66"
+    },
+    {
+      "apiLevel": 24,
+      "version": "6.1.0.125",
+      "platformVersion": "6.1.1",
+      "releaseType": "Release",
+      "path": "system-image,HarmonyOS-6.1.1,phone_all_x86",
+      "manifestSha256": "68A166D5FCDF1297C06342C3BBFF0831D06A9811B5C501413AC9047A5FA767D2"
+    },
+    {
+      "apiLevel": 26,
+      "version": "7.0.0.32",
+      "platformVersion": "26.0.0",
+      "releaseType": "Beta2",
+      "path": "system-image,HarmonyOS-7.0.0,phone_all_x86",
+      "manifestSha256": "BAE7B713FEF4B411E79687B998200A208EE0B1F2A175408F8028433E135B9E6F"
+    }
+  ]
+}
