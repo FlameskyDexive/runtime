@@ -48,7 +48,8 @@ check_prereqs()
 
 build_native()
 {
-    if [[ ! -e "$__RepoRootDir/artifacts/obj/_version.c" ]]; then
+    artifacts_obj_dir="${__ArtifactsObjDir:-$__RepoRootDir/artifacts/obj}"
+    if [[ ! -e "$artifacts_obj_dir/_version.c" ]]; then
         eval "$__RepoRootDir/eng/native/version/copy_version_files.sh"
     fi
 

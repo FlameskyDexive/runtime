@@ -10,7 +10,12 @@ set "__repoRoot=%__sourceRootDir%\..\..\.."
 :: normalize
 for %%i in ("%__repoRoot%") do set "__repoRoot=%%~fi"
 set "__engNativeDir=%__repoRoot%\eng\native"
-set "__artifactsDir=%__repoRoot%\artifacts"
+if defined __RootBinDir (
+    set "__artifactsDir=%__RootBinDir%"
+) else (
+    set "__artifactsDir=%__repoRoot%\artifacts"
+)
+set "__ArtifactsObjDir=%__artifactsDir%\obj"
 set __CMakeBinDir=""
 set __IntermediatesDir=""
 set __BuildArch=x64
@@ -82,7 +87,9 @@ if %__CrossTarget% EQU 0 (
 
 :: cmake requires forward slashes in paths
 set __cmakeRepoRoot=%__repoRoot:\=/%
+set __cmakeArtifactsObjDir=%__ArtifactsObjDir:\=/%
 set __ExtraCmakeParams=%__ExtraCmakeParams% "-DCMAKE_REPO_ROOT=%__cmakeRepoRoot%"
+set __ExtraCmakeParams=%__ExtraCmakeParams% "-DCLR_ARTIFACTS_OBJ_DIR=%__cmakeArtifactsObjDir%"
 set __ExtraCmakeParams=%__ExtraCmakeParams% "-DCMAKE_BUILD_TYPE=%CMAKE_BUILD_TYPE%"
 
 if NOT %__icuDir% == "" (

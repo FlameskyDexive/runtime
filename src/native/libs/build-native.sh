@@ -42,7 +42,11 @@ __CMakeArgs=""
 __Compiler=clang
 __CrossBuild=0
 __PortableBuild=1
-__RootBinDir="$__RepoRootDir/artifacts"
+if [[ -z "${__RootBinDir:-}" ]]; then
+    __RootBinDir="$__RepoRootDir/artifacts"
+fi
+__ArtifactsObjDir="$__RootBinDir/obj"
+export __ArtifactsObjDir
 __SkipConfigure=0
 __StaticLibLink=0
 __UnprocessedBuildArgs=
@@ -158,7 +162,7 @@ fi
 if [[ -n "$__icuDir" ]]; then
     __CMakeArgs="-DCMAKE_ICU_DIR=\"$__icuDir\" $__CMakeArgs"
 fi
-__CMakeArgs="-DCMAKE_USE_PTHREADS=$__usePThreads $__CMakeArgs"
+__CMakeArgs="-DCLR_ARTIFACTS_OBJ_DIR=$__ArtifactsObjDir -DCMAKE_USE_PTHREADS=$__usePThreads $__CMakeArgs"
 
 # Set the remaining variables based upon the determined build configuration
 __outConfig="${__outConfig:-"$__TargetOS-$__TargetArch-$__BuildType"}"

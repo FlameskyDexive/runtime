@@ -87,7 +87,7 @@ Describe 'OpenHarmony runtime build invocation' {
         $unixBuild = Get-Content -LiteralPath (Join-Path $repoRoot 'src\coreclr\build-runtime.sh') -Raw
 
         $windowsBuild | Should -Match 'if not defined __RootBinDir set "__RootBinDir=%__RepoRootDir%\\artifacts"'
-        $windowsBuild | Should -Match 'CLR_ARTIFACTS_OBJ_DIR=!__ArtifactsObjDir!'
+        $windowsBuild | Should -Match 'CLR_ARTIFACTS_OBJ_DIR=!__CMakeArtifactsObjDir!'
         $windowsBuild | Should -Match 'set "__ArtifactsObjDir=%__RootBinDir%\\obj"'
         $windowsBuild | Should -Match 'set "__ArtifactsIntermediatesDir=%__ArtifactsObjDir%\\coreclr\\"'
         $unixBuild | Should -Match 'if \[\[ -z "\$\{__RootBinDir:-\}" \]\]'
@@ -95,6 +95,13 @@ Describe 'OpenHarmony runtime build invocation' {
 
         $configurePaths = Get-Content -LiteralPath (Join-Path $repoRoot 'eng\native\configurepaths.cmake') -Raw
         $configurePaths | Should -Match 'NOT DEFINED CLR_ARTIFACTS_OBJ_DIR'
+
+        $nativeLibWindowsBuild = Get-Content -LiteralPath (Join-Path $repoRoot 'src\native\libs\build-native.cmd') -Raw
+        $nativeLibUnixBuild = Get-Content -LiteralPath (Join-Path $repoRoot 'src\native\libs\build-native.sh') -Raw
+        $nativeLibWindowsBuild | Should -Match 'if defined __RootBinDir'
+        $nativeLibWindowsBuild | Should -Match 'CLR_ARTIFACTS_OBJ_DIR=%__cmakeArtifactsObjDir%'
+        $nativeLibUnixBuild | Should -Match 'if \[\[ -z "\$\{__RootBinDir:-\}" \]\]'
+        $nativeLibUnixBuild | Should -Match 'CLR_ARTIFACTS_OBJ_DIR=\$__ArtifactsObjDir'
     }
 
     It 'uses API15 and the official arm64 toolchain without a Linux rootfs' {

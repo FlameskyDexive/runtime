@@ -233,6 +233,7 @@ set "__IntermediatesDir=%__RootBinDir%\obj\coreclr\%__TargetOSDirName%.%__Target
 set "__LogsDir=%__RootBinDir%\log\!__BuildType!"
 set "__MsbuildDebugLogsDir=%__LogsDir%\MsbuildDebugLogs"
 set "__ArtifactsObjDir=%__RootBinDir%\obj"
+set "__CMakeArtifactsObjDir=%__ArtifactsObjDir:\=/%"
 set "__ArtifactsIntermediatesDir=%__ArtifactsObjDir%\coreclr\"
 if "%__Ninja%"=="0" (set "__IntermediatesDir=%__IntermediatesDir%\ide")
 set "__PackagesBinDir=%__BinDir%\.nuget"
@@ -416,7 +417,7 @@ if %__BuildNative% EQU 1 (
         set "__HostOS=!__TargetOS!"
     )
 
-    set __ExtraCmakeArgs=!__ExtraCmakeArgs! "-DCLR_ARTIFACTS_OBJ_DIR=!__ArtifactsObjDir!" %__CMakeArgs%
+    set __ExtraCmakeArgs=!__ExtraCmakeArgs! "-DCLR_ARTIFACTS_OBJ_DIR=!__CMakeArtifactsObjDir!" %__CMakeArgs%
 
     echo Calling "%__RepoRootDir%\eng\native\gen-buildsys.cmd" "%__ProjectDir%" "%__IntermediatesDir%" %VisualStudioVersion% %__HostArch% !__HostOS! !__ExtraCmakeArgs!
     call "%__RepoRootDir%\eng\native\gen-buildsys.cmd" "%__ProjectDir%" "%__IntermediatesDir%" %VisualStudioVersion% %__HostArch% !__HostOS! !__ExtraCmakeArgs!
