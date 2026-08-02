@@ -149,6 +149,9 @@ foreach ($api in $Apis) {
                 throw "Runtime provenance was not produced: '$provenancePath'."
             }
             $provenance = Get-Content -LiteralPath $provenancePath -Raw | ConvertFrom-Json
+            if (-not $ConfigureOnly -and [bool]$provenance.sourceDirty) {
+                throw "OpenHarmony runtime provenance reports sourceDirty=true; refusing to mark a dirty-source build as PASS."
+            }
             if (-not $ConfigureOnly) {
                 & $VerifyScriptPath `
                     -SdkRoot $SdkRoot `

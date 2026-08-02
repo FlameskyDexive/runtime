@@ -23,6 +23,11 @@ function Get-OpenHarmonyArtifactLayout {
         $ArtifactsRoot = Join-Path $RepoRoot $ArtifactsRoot
     }
     $ArtifactsRoot = [IO.Path]::GetFullPath($ArtifactsRoot).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+    $expectedSuffix = "api$ApiLevel\$Architecture\$Configuration"
+    if (-not $ArtifactsRoot.EndsWith("\$expectedSuffix", [StringComparison]::OrdinalIgnoreCase) -and
+        -not $ArtifactsRoot.Equals($expectedSuffix, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "OpenHarmony ArtifactsRoot must end with '$expectedSuffix' to preserve per-API, architecture, and configuration isolation: '$ArtifactsRoot'."
+    }
 
     $ridArchitecture = if ($Architecture -eq 'arm64') { 'arm64' } else { 'x64' }
     $binRoot = Join-Path $ArtifactsRoot 'bin'

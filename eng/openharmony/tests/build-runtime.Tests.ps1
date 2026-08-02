@@ -71,6 +71,17 @@ Describe 'OpenHarmony runtime build invocation' {
         $invocation.Environment.__RootBinDir | Should -Be $artifactsRoot
     }
 
+    It 'rejects an explicit artifacts root that is not API-qualified' {
+        {
+            Get-OpenHarmonyArtifactLayout `
+                -RepoRoot 'C:\runtime' `
+                -ApiLevel 13 `
+                -Architecture x64 `
+                -Configuration Release `
+                -ArtifactsRoot 'C:\shared-runtime-output'
+        } | Should -Throw '*must end with*api13\x64\Release*'
+    }
+
     It 'keeps native CoreCLR outputs under a caller-provided root on Windows and Unix' {
         $windowsBuild = Get-Content -LiteralPath (Join-Path $repoRoot 'src\coreclr\build-runtime.cmd') -Raw
         $unixBuild = Get-Content -LiteralPath (Join-Path $repoRoot 'src\coreclr\build-runtime.sh') -Raw
@@ -290,5 +301,45 @@ throw "synthetic build failure for API $ApiLevel"
         $failedSummary.status | Should -Be 'FAIL'
         $failedSummary.buildExitCode | Should -Be 1
         Test-Path -LiteralPath (Join-Path $artifactsBaseRoot 'api14') | Should -Be $false
+    }
+
+    It 'rejects dirty provenance before marking a full build as PASS' {
+        $artifactsBaseRoot = Join-Path $TestDrive 'dirty-output'
+        $fakeBuildScript = Join-Path $TestDrive 'fake-dirty-build-runtime.ps1'
+        $fakeVerifyScript = Join-Path $TestDrive 'fake-verify-runtime.ps1'
+        @'
+[CmdletBinding()]
+param(
+    [string] $SdkRoot,
+    [int] $ApiLevel,
+    [string] $Architecture,
+    [string] $Configuration,
+    [string] $ArtifactsRoot,
+    [string] $OpenSslRoot,
+    [string] $IcuRoot,
+    [switch] $ConfigureOnly
+)
+New-Item -ItemType Directory -Path $ArtifactsRoot -Force | Out-Null
+@{ sourceDirty = $true; sourceCommit = 'dirty-test' } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $ArtifactsRoot 'runtime-build-provenance.json') -Encoding Ascii
+'@ | Set-Content -LiteralPath $fakeBuildScript -Encoding Ascii
+@'
+[CmdletBinding()]
+param([string] $ArtifactsRoot)
+'@ | Set-Content -LiteralPath $fakeVerifyScript -Encoding Ascii
+
+        {
+            & $matrixScriptPath `
+                -SdkRoot $TestDrive `
+                -Apis 13 `
+                -Architectures x64 `
+                -Configuration Release `
+                -ArtifactsBaseRoot $artifactsBaseRoot `
+                -BuildScriptPath $fakeBuildScript `
+                -VerifyScriptPath $fakeVerifyScript
+        } | Should -Throw '*sourceDirty=true*'
+
+        $summary = Get-Content -LiteralPath (Join-Path $artifactsBaseRoot 'api13\x64\Release\runtime-matrix-summary.json') -Raw | ConvertFrom-Json
+        $summary.status | Should -Be 'FAIL'
+        $summary.reason | Should -Match 'sourceDirty=true'
     }
 }
