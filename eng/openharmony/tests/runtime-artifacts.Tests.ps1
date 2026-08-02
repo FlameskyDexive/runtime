@@ -78,11 +78,22 @@ Describe 'OpenHarmony runtime artifact verification' {
         $content | Should -Match 'sourceDirty'
     }
 
+    It 'verifies API-qualified artifact roots through the shared layout contract' {
+        $scriptPath = Join-Path $repoRoot 'eng\openharmony\verify-runtime.ps1'
+        $content = Get-Content -LiteralPath $scriptPath -Raw
+
+        $content | Should -Match '\[string\]\s+\$ArtifactsRoot'
+        $content | Should -Match 'Get-OpenHarmonyArtifactLayout'
+        $content | Should -Match '\$layout\.ProvenancePath'
+        $content | Should -Match 'runtimeBaselineApi'
+        $content | Should -Match 'sdkManifestSha256'
+    }
+
     It 'allows only platform dependencies present in the effective CMake linker configuration' {
         $scriptPath = Join-Path $repoRoot 'eng\openharmony\verify-runtime.ps1'
         $content = Get-Content -LiteralPath $scriptPath -Raw
 
-        $content | Should -Match 'CMakeCache\.txt'
+        $content | Should -Match '\$layout\.CMakeCachePath'
         $content | Should -Match 'Get-OpenHarmonyInjectedSharedDependencies'
         $content | Should -Match '\$missingDependencies'
         $content | Should -Match '\$unexpectedDependencies'
@@ -104,6 +115,15 @@ Describe 'OpenHarmony runtime artifact verification' {
         $content | Should -Match 'sha256'
         $content | Should -Match 'sdkApiLevel'
         $content | Should -Match 'sdkPackageVersion'
+    }
+
+    It 'makes full runtime matrix cases pass artifact verification before writing PASS' {
+        $scriptPath = Join-Path $repoRoot 'eng\openharmony\run-runtime-matrix.ps1'
+        $content = Get-Content -LiteralPath $scriptPath -Raw
+
+        $content | Should -Match 'verify-runtime\.ps1'
+        $content | Should -Match '-ArtifactsRoot\s+\$caseRoot'
+        $content | Should -Match 'status\s*=\s*if\s*\(\$ConfigureOnly\)\s*\{\s*''CONFIGURED''\s*\}\s*else\s*\{\s*''PASS'''
     }
 
     It 'verifies the complete API15 arm64 runtime output' -Skip:(-not $hasCurrentApi15Arm64Fixture) {

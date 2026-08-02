@@ -1,5 +1,7 @@
 BeforeAll {
+    $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
     $modulePath = Join-Path $PSScriptRoot '..\OpenHarmonyBuild.psm1'
+    $matrixScriptPath = Join-Path $PSScriptRoot '..\run-runtime-matrix.ps1'
     Import-Module $modulePath -Force
 }
 
@@ -37,6 +39,47 @@ Describe 'OpenHarmony configured linker dependencies' {
 }
 
 Describe 'OpenHarmony runtime build invocation' {
+    It 'isolates API14 x64 artifacts and provenance under the requested root' {
+        $artifactsRoot = 'C:\runtime\artifacts\openharmony\api14\x64\Release'
+        $sdk = [PSCustomObject]@{
+            ApiLevel = 14
+            Architecture = 'x64'
+            OhosArch = 'x86_64'
+            TargetTriple = 'x86_64-linux-ohos'
+            NativeRoot = 'C:\sdk\14\native'
+            Sysroot = 'C:\sdk\14\native\sysroot'
+            ToolchainFile = 'C:\sdk\14\native\build\cmake\ohos.toolchain.cmake'
+            Clang = 'C:\sdk\14\native\llvm\bin\clang.exe'
+            ClangXX = 'C:\sdk\14\native\llvm\bin\clang++.exe'
+            Linker = 'C:\sdk\14\native\llvm\bin\ld.lld.exe'
+            CMake = 'C:\sdk\14\native\build-tools\cmake\bin\cmake.exe'
+            Ninja = 'C:\sdk\14\native\build-tools\cmake\bin\ninja.exe'
+        }
+
+        $invocation = New-OpenHarmonyBuildInvocation `
+            -RepoRoot 'C:\runtime' `
+            -Sdk $sdk `
+            -OpenSslRoot 'C:\openssl\x86_64' `
+            -IcuRoot 'C:\icu\x86_64' `
+            -Configuration Release `
+            -ArtifactsRoot $artifactsRoot
+
+        $invocation.ArtifactsRoot | Should -Be $artifactsRoot
+        $invocation.ProvenancePath | Should -Be (Join-Path $artifactsRoot 'runtime-build-provenance.json')
+        $invocation.CoreClrOutput | Should -Match 'api14\\x64\\Release\\bin\\coreclr\\openharmony\.x64\.Release$'
+        $invocation.Arguments | Should -Contain "/p:ArtifactsDir=$artifactsRoot"
+        $invocation.Environment.__RootBinDir | Should -Be $artifactsRoot
+    }
+
+    It 'keeps native CoreCLR outputs under a caller-provided root on Windows and Unix' {
+        $windowsBuild = Get-Content -LiteralPath (Join-Path $repoRoot 'src\coreclr\build-runtime.cmd') -Raw
+        $unixBuild = Get-Content -LiteralPath (Join-Path $repoRoot 'src\coreclr\build-runtime.sh') -Raw
+
+        $windowsBuild | Should -Match 'if not defined __RootBinDir set "__RootBinDir=%__RepoRootDir%\\artifacts"'
+        $windowsBuild | Should -Match 'set "__ArtifactsIntermediatesDir=%__RootBinDir%\\obj\\coreclr\\"'
+        $unixBuild | Should -Match 'if \[\[ -z "\$\{__RootBinDir:-\}" \]\]'
+    }
+
     It 'uses API15 and the official arm64 toolchain without a Linux rootfs' {
         $repoRoot = 'C:\runtime'
         $sdk = [PSCustomObject]@{
@@ -106,6 +149,7 @@ Describe 'OpenHarmony runtime build invocation' {
         ($invocation.Arguments -contains 'x64') | Should -Be $true
         ($invocation.Arguments -contains 'Checked') | Should -Be $true
         ($invocation.Arguments -contains '/p:ConfigureOnly=true') | Should -Be $true
+        $invocation.Arguments[0] | Should -Be 'clr.nativeaotruntime'
         $invocation.Environment.OHOS_ARCH | Should -Be 'x86_64'
         $invocation.Environment.OHOS_API_LEVEL | Should -Be '26'
         $invocation.Environment.OHOS_TARGET_TRIPLE | Should -Be 'x86_64-linux-ohos'
@@ -164,5 +208,87 @@ exit /b 0
             [Environment]::SetEnvironmentVariable('ROOTFS_DIR', $oldRootfs, 'Process')
             [Environment]::SetEnvironmentVariable('OHOS_TEST_OUTPUT', $oldOutput, 'Process')
         }
+    }
+}
+
+Describe 'OpenHarmony runtime matrix' {
+    It 'rejects API25 before creating an artifacts root' {
+        $artifactsBaseRoot = Join-Path $TestDrive 'api25-output'
+
+        {
+            & $matrixScriptPath `
+                -SdkRoot $TestDrive `
+                -Apis 25 `
+                -Architectures x64 `
+                -Configuration Release `
+                -ConfigureOnly `
+                -ArtifactsBaseRoot $artifactsBaseRoot
+        } | Should -Throw '*API 25*intentionally unsupported*'
+
+        Test-Path -LiteralPath $artifactsBaseRoot | Should -Be $false
+    }
+
+    It 'records API16 as an emulator-only skipped build without resolving an SDK' {
+        $artifactsBaseRoot = Join-Path $TestDrive 'api16-output'
+
+        $result = & $matrixScriptPath `
+            -SdkRoot (Join-Path $TestDrive 'missing-sdk-root') `
+            -Apis 16 `
+            -Architectures x64 `
+            -Configuration Release `
+            -ConfigureOnly `
+            -ArtifactsBaseRoot $artifactsBaseRoot
+
+        $result.status | Should -Be 'SKIPPED'
+        $result.buildApi | Should -Be 16
+        $result.buildExitCode | Should -BeNullOrEmpty
+        $result.reason | Should -Match '(?i)no.*Native SDK.*installable'
+        $summaryPath = Join-Path $artifactsBaseRoot 'api16\x64\Release\runtime-matrix-summary.json'
+        Test-Path -LiteralPath $summaryPath -PathType Leaf | Should -Be $true
+    }
+
+    It 'writes the failed case summary and stops before the next build API' {
+        $artifactsBaseRoot = Join-Path $TestDrive 'failed-output'
+        $fakeBuildScript = Join-Path $TestDrive 'fake-build-runtime.ps1'
+        $callLog = Join-Path $TestDrive 'matrix-calls.txt'
+        @'
+[CmdletBinding()]
+param(
+    [string] $SdkRoot,
+    [int] $ApiLevel,
+    [string] $Architecture,
+    [string] $Configuration,
+    [string] $ArtifactsRoot,
+    [string] $OpenSslRoot,
+    [string] $IcuRoot,
+    [switch] $ConfigureOnly
+)
+Add-Content -LiteralPath $env:OHOS_MATRIX_TEST_CALL_LOG -Value $ApiLevel -Encoding Ascii
+throw "synthetic build failure for API $ApiLevel"
+'@ | Set-Content -LiteralPath $fakeBuildScript -Encoding Ascii
+
+        $oldCallLog = [Environment]::GetEnvironmentVariable('OHOS_MATRIX_TEST_CALL_LOG', 'Process')
+        try {
+            [Environment]::SetEnvironmentVariable('OHOS_MATRIX_TEST_CALL_LOG', $callLog, 'Process')
+            {
+                & $matrixScriptPath `
+                    -SdkRoot $TestDrive `
+                    -Apis 13, 14 `
+                    -Architectures x64 `
+                    -Configuration Release `
+                    -ConfigureOnly `
+                    -ArtifactsBaseRoot $artifactsBaseRoot `
+                    -BuildScriptPath $fakeBuildScript
+            } | Should -Throw '*synthetic build failure for API 13*'
+        }
+        finally {
+            [Environment]::SetEnvironmentVariable('OHOS_MATRIX_TEST_CALL_LOG', $oldCallLog, 'Process')
+        }
+
+        @(Get-Content -LiteralPath $callLog) | Should -Be @('13')
+        $failedSummary = Get-Content -LiteralPath (Join-Path $artifactsBaseRoot 'api13\x64\Release\runtime-matrix-summary.json') -Raw | ConvertFrom-Json
+        $failedSummary.status | Should -Be 'FAIL'
+        $failedSummary.buildExitCode | Should -Be 1
+        Test-Path -LiteralPath (Join-Path $artifactsBaseRoot 'api14') | Should -Be $false
     }
 }

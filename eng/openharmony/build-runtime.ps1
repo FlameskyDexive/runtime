@@ -14,6 +14,8 @@ param(
 
     [string] $IcuRoot,
 
+    [string] $ArtifactsRoot,
+
     [switch] $ConfigureOnly,
 
     [switch] $DryRun
@@ -132,11 +134,24 @@ Assert-DependencyMetadata `
     -Architecture $dependencySdk.Architecture `
     -TargetTriple $dependencySdk.TargetTriple
 
-$ridArchitecture = if ($Architecture -eq 'arm64') { 'arm64' } else { 'x64' }
-$coreClrOutput = Join-Path $repoRoot "artifacts\bin\coreclr\openharmony.$Architecture.$Configuration"
-$intermediatesRoot = Join-Path $repoRoot "artifacts\obj\coreclr\openharmony.$Architecture.$Configuration"
-$runtimePack = Join-Path $repoRoot "artifacts\bin\microsoft.netcore.app.runtime.linux-musl-$ridArchitecture\$Configuration\runtimes\linux-musl-$ridArchitecture"
-$nativeOutput = Join-Path $runtimePack 'native'
+$invocation = New-OpenHarmonyBuildInvocation `
+    -RepoRoot $repoRoot `
+    -Sdk $sdk `
+    -OpenSslRoot $OpenSslRoot `
+    -IcuRoot $IcuRoot `
+    -Configuration $Configuration `
+    -ArtifactsRoot $ArtifactsRoot `
+    -ConfigureOnly:$ConfigureOnly
+
+$driveRoot = [IO.Path]::GetPathRoot($invocation.ArtifactsRoot).TrimEnd('\', '/')
+if ($invocation.ArtifactsRoot -eq $repoRoot -or $invocation.ArtifactsRoot.TrimEnd('\', '/') -eq $driveRoot) {
+    throw "OpenHarmony ArtifactsRoot must be a dedicated output directory, not '$($invocation.ArtifactsRoot)'."
+}
+
+$coreClrOutput = $invocation.CoreClrOutput
+$intermediatesRoot = $invocation.CoreClrIntermediates
+$runtimePack = $invocation.RuntimePack
+$nativeOutput = $invocation.NativeOutput
 
 function Get-GitValue {
     param(
@@ -155,8 +170,11 @@ $sourceCommit = Get-GitValue -Arguments @('rev-parse', 'HEAD')
 $sourceDirty = -not [string]::IsNullOrWhiteSpace((Get-GitValue -Arguments @('status', '--porcelain', '--untracked-files=normal')))
 $expectedProvenance = [ordered]@{
     apiLevel = $sdk.ApiLevel
+    buildApi = $sdk.ApiLevel
+    runtimeBaselineApi = 13
     sdkFolder = $sdk.SdkFolder
     sdkPackageVersion = $sdk.PackageVersion
+    sdkManifestSha256 = $sdk.ManifestSha256
     sdkReleaseType = $sdk.ReleaseType
     architecture = $sdk.Architecture
     ohosArch = $sdk.OhosArch
@@ -164,6 +182,8 @@ $expectedProvenance = [ordered]@{
     sysroot = $sdk.Sysroot
     toolchainFile = $sdk.ToolchainFile
     configuration = $Configuration
+    artifactsRoot = $invocation.ArtifactsRoot
+    configureOnly = [bool]$ConfigureOnly
     sourceCommit = $sourceCommit
     sourceDirty = $sourceDirty
 }
@@ -185,7 +205,7 @@ function Test-ProvenanceMatch {
     return $true
 }
 
-$intermediateProvenancePath = Join-Path $intermediatesRoot 'openharmony-build-provenance.json'
+$intermediateProvenancePath = $invocation.IntermediateProvenancePath
 $existingProvenance = $null
 if (Test-Path -LiteralPath $intermediateProvenancePath -PathType Leaf) {
     try {
@@ -197,20 +217,12 @@ if (Test-Path -LiteralPath $intermediateProvenancePath -PathType Leaf) {
 }
 
 if ($null -eq $existingProvenance -or -not (Test-ProvenanceMatch -Actual $existingProvenance -Expected $expectedProvenance)) {
-    foreach ($path in @($intermediatesRoot, $coreClrOutput, $runtimePack)) {
+    foreach ($path in @($invocation.BinRoot, $invocation.ObjRoot, $invocation.PackagesRoot)) {
         if (Test-Path -LiteralPath $path) {
             Remove-Item -LiteralPath $path -Recurse -Force
         }
     }
 }
-
-$invocation = New-OpenHarmonyBuildInvocation `
-    -RepoRoot $repoRoot `
-    -Sdk $sdk `
-    -OpenSslRoot $OpenSslRoot `
-    -IcuRoot $IcuRoot `
-    -Configuration $Configuration `
-    -ConfigureOnly:$ConfigureOnly
 
 if ($DryRun) {
     $invocation
@@ -220,8 +232,14 @@ if ($DryRun) {
 Write-Host "Building .NET 10 NativeAOT for HarmonyOS API $ApiLevel ($($sdk.OhosArch), $($sdk.TargetTriple))."
 Invoke-OpenHarmonyBuild -Invocation $invocation
 
+$provenanceJson = $expectedProvenance | ConvertTo-Json -Depth 4
+New-Item -ItemType Directory -Path $invocation.ArtifactsRoot -Force | Out-Null
+$provenanceJson | Set-Content -LiteralPath $invocation.ProvenancePath -Encoding Ascii
+New-Item -ItemType Directory -Path $intermediatesRoot -Force | Out-Null
+$provenanceJson | Set-Content -LiteralPath $intermediateProvenancePath -Encoding Ascii
+
 if ($ConfigureOnly) {
-    Write-Host 'OpenHarmony configure completed; runtime provenance will be written after a complete build.'
+    Write-Host "OpenHarmony configure completed; wrote provenance to '$($invocation.ProvenancePath)'."
     exit 0
 }
 
@@ -243,9 +261,4 @@ foreach ($libraryName in @('libicuuc.so.78', 'libicui18n.so.78', 'libicudata.so.
 }
 Copy-Item -LiteralPath (Join-Path $IcuRoot 'LICENSE') -Destination (Join-Path $nativeOutput 'ICU-LICENSE.txt') -Force
 
-$provenanceJson = $expectedProvenance | ConvertTo-Json -Depth 4
-New-Item -ItemType Directory -Path $coreClrOutput -Force | Out-Null
-$provenanceJson | Set-Content -LiteralPath (Join-Path $coreClrOutput 'runtime-build-provenance.json') -Encoding Ascii
-New-Item -ItemType Directory -Path $intermediatesRoot -Force | Out-Null
-$provenanceJson | Set-Content -LiteralPath $intermediateProvenancePath -Encoding Ascii
-Write-Host "Wrote OpenHarmony runtime provenance for API $ApiLevel to '$coreClrOutput'."
+Write-Host "Wrote OpenHarmony runtime provenance for API $ApiLevel to '$($invocation.ProvenancePath)'."

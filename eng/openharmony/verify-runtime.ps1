@@ -8,7 +8,9 @@ param(
     [string] $Architecture = 'arm64',
 
     [ValidateSet('Debug', 'Checked', 'Release')]
-    [string] $Configuration = 'Release'
+    [string] $Configuration = 'Release',
+
+    [string] $ArtifactsRoot
 )
 
 $ErrorActionPreference = 'Stop'
@@ -62,27 +64,34 @@ function Invoke-CheckedTool {
     return @($output)
 }
 
-$ridArchitecture = if ($Architecture -eq 'arm64') { 'arm64' } else { 'x64' }
 $machine = if ($Architecture -eq 'arm64') { 'AArch64' } else { 'Advanced Micro Devices X86-64' }
-$coreClrOutput = Join-Path $repoRoot "artifacts\bin\coreclr\openharmony.$Architecture.$Configuration"
+$layout = Get-OpenHarmonyArtifactLayout `
+    -RepoRoot $repoRoot `
+    -ApiLevel $ApiLevel `
+    -Architecture $Architecture `
+    -Configuration $Configuration `
+    -ArtifactsRoot $ArtifactsRoot
+$coreClrOutput = $layout.CoreClrOutput
 $aotSdk = Join-Path $coreClrOutput 'aotsdk'
-$runtimePack = Join-Path $repoRoot "artifacts\bin\microsoft.netcore.app.runtime.linux-musl-$ridArchitecture\$Configuration\runtimes\linux-musl-$ridArchitecture"
-$runtimePackRoot = Join-Path $repoRoot "artifacts\bin\microsoft.netcore.app.runtime.linux-musl-$ridArchitecture\$Configuration"
+$runtimePack = $layout.RuntimePack
+$runtimePackRoot = $layout.RuntimePackRoot
 $managedOutput = Join-Path $runtimePack 'lib\net10.0'
 $nativeOutput = Join-Path $runtimePack 'native'
-$nativeIntermediates = Join-Path $repoRoot "artifacts\obj\native\net10.0-openharmony-$Configuration-$Architecture"
-$cmakeCachePath = Join-Path $nativeIntermediates 'CMakeCache.txt'
+$cmakeCachePath = $layout.CMakeCachePath
 
 $sourceCommit = Get-GitValue -Arguments @('rev-parse', 'HEAD')
 $sourceDirty = -not [string]::IsNullOrWhiteSpace((Get-GitValue -Arguments @('status', '--porcelain', '--untracked-files=normal')))
 
-$provenancePath = Join-Path $coreClrOutput 'runtime-build-provenance.json'
+$provenancePath = $layout.ProvenancePath
 Assert-RequiredFile -Path $provenancePath
 $provenance = Get-Content -LiteralPath $provenancePath -Raw | ConvertFrom-Json
 $expectedProvenance = [ordered]@{
     apiLevel = $ApiLevel
+    buildApi = $ApiLevel
+    runtimeBaselineApi = 13
     sdkFolder = $sdk.SdkFolder
     sdkPackageVersion = $sdk.PackageVersion
+    sdkManifestSha256 = $sdk.ManifestSha256
     sdkReleaseType = $sdk.ReleaseType
     architecture = $sdk.Architecture
     ohosArch = $sdk.OhosArch
@@ -90,6 +99,8 @@ $expectedProvenance = [ordered]@{
     sysroot = $sdk.Sysroot
     toolchainFile = $sdk.ToolchainFile
     configuration = $Configuration
+    artifactsRoot = $layout.ArtifactsRoot
+    configureOnly = $false
     sourceCommit = $sourceCommit
     sourceDirty = $sourceDirty
 }

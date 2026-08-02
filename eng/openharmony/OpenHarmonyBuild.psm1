@@ -1,3 +1,55 @@
+function Get-OpenHarmonyArtifactLayout {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $RepoRoot,
+
+        [Parameter(Mandatory = $true)]
+        [int] $ApiLevel,
+
+        [ValidateSet('arm64', 'x64')]
+        [string] $Architecture,
+
+        [ValidateSet('Debug', 'Checked', 'Release')]
+        [string] $Configuration = 'Release',
+
+        [string] $ArtifactsRoot
+    )
+
+    if ([string]::IsNullOrWhiteSpace($ArtifactsRoot)) {
+        $ArtifactsRoot = Join-Path $RepoRoot "artifacts\openharmony\api$ApiLevel\$Architecture\$Configuration"
+    }
+    elseif (-not [IO.Path]::IsPathRooted($ArtifactsRoot)) {
+        $ArtifactsRoot = Join-Path $RepoRoot $ArtifactsRoot
+    }
+    $ArtifactsRoot = [IO.Path]::GetFullPath($ArtifactsRoot).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+
+    $ridArchitecture = if ($Architecture -eq 'arm64') { 'arm64' } else { 'x64' }
+    $binRoot = Join-Path $ArtifactsRoot 'bin'
+    $objRoot = Join-Path $ArtifactsRoot 'obj'
+    $coreClrOutput = Join-Path $binRoot "coreclr\openharmony.$Architecture.$Configuration"
+    $runtimePackRoot = Join-Path $binRoot "microsoft.netcore.app.runtime.linux-musl-$ridArchitecture\$Configuration"
+    $runtimePack = Join-Path $runtimePackRoot "runtimes\linux-musl-$ridArchitecture"
+    $nativeIntermediates = Join-Path $objRoot "native\net10.0-openharmony-$Configuration-$Architecture"
+    $coreClrIntermediates = Join-Path $objRoot "coreclr\openharmony.$Architecture.$Configuration"
+
+    [PSCustomObject][ordered]@{
+        ArtifactsRoot = $ArtifactsRoot
+        BinRoot = $binRoot
+        ObjRoot = $objRoot
+        PackagesRoot = Join-Path $ArtifactsRoot 'packages'
+        CoreClrOutput = $coreClrOutput
+        CoreClrIntermediates = $coreClrIntermediates
+        RuntimePackRoot = $runtimePackRoot
+        RuntimePack = $runtimePack
+        NativeOutput = Join-Path $runtimePack 'native'
+        NativeIntermediates = $nativeIntermediates
+        CMakeCachePath = Join-Path $nativeIntermediates 'CMakeCache.txt'
+        ProvenancePath = Join-Path $ArtifactsRoot 'runtime-build-provenance.json'
+        IntermediateProvenancePath = Join-Path $coreClrIntermediates 'openharmony-build-provenance.json'
+    }
+}
+
 function New-OpenHarmonyBuildInvocation {
     [CmdletBinding()]
     param(
@@ -16,11 +68,22 @@ function New-OpenHarmonyBuildInvocation {
         [ValidateSet('Debug', 'Checked', 'Release')]
         [string] $Configuration = 'Release',
 
+        [string] $ArtifactsRoot,
+
         [switch] $ConfigureOnly
     )
 
+    $layout = Get-OpenHarmonyArtifactLayout `
+        -RepoRoot $RepoRoot `
+        -ApiLevel $Sdk.ApiLevel `
+        -Architecture $Sdk.Architecture `
+        -Configuration $Configuration `
+        -ArtifactsRoot $ArtifactsRoot
+    $ArtifactsRoot = $layout.ArtifactsRoot
+
+    $subset = if ($ConfigureOnly) { 'clr.nativeaotruntime' } else { 'clr.nativeaotruntime+clr.nativeaotlibs+libs' }
     $arguments = @(
-        'clr.nativeaotruntime+clr.nativeaotlibs+libs',
+        $subset,
         '-configuration', $Configuration,
         '-arch', [string]$Sdk.Architecture,
         '-cross',
@@ -29,6 +92,7 @@ function New-OpenHarmonyBuildInvocation {
         '-verbosity', 'minimal',
         "/p:OpenHarmonyApiLevel=$($Sdk.ApiLevel)",
         "/p:OpenHarmonySdkRoot=$($Sdk.NativeRoot)",
+        "/p:ArtifactsDir=$ArtifactsRoot",
         '/p:PortableBuild=true',
         '/p:FeatureXplatEventSource=false'
     )
@@ -44,8 +108,22 @@ function New-OpenHarmonyBuildInvocation {
     [PSCustomObject][ordered]@{
         Command = Join-Path $RepoRoot 'build.cmd'
         WorkingDirectory = $RepoRoot
+        ArtifactsRoot = $layout.ArtifactsRoot
+        BinRoot = $layout.BinRoot
+        ObjRoot = $layout.ObjRoot
+        PackagesRoot = $layout.PackagesRoot
+        CoreClrOutput = $layout.CoreClrOutput
+        CoreClrIntermediates = $layout.CoreClrIntermediates
+        RuntimePackRoot = $layout.RuntimePackRoot
+        RuntimePack = $layout.RuntimePack
+        NativeOutput = $layout.NativeOutput
+        NativeIntermediates = $layout.NativeIntermediates
+        CMakeCachePath = $layout.CMakeCachePath
+        ProvenancePath = $layout.ProvenancePath
+        IntermediateProvenancePath = $layout.IntermediateProvenancePath
         Arguments = $arguments
         Environment = [ordered]@{
+            __RootBinDir = $ArtifactsRoot
             OHOS_API_LEVEL = [string]$Sdk.ApiLevel
             OHOS_ARCH = [string]$Sdk.OhosArch
             OHOS_TARGET_TRIPLE = [string]$Sdk.TargetTriple
@@ -141,4 +219,4 @@ function Invoke-OpenHarmonyBuild {
     }
 }
 
-Export-ModuleMember -Function New-OpenHarmonyBuildInvocation, Invoke-OpenHarmonyBuild, Get-OpenHarmonyInjectedSharedDependencies
+Export-ModuleMember -Function Get-OpenHarmonyArtifactLayout, New-OpenHarmonyBuildInvocation, Invoke-OpenHarmonyBuild, Get-OpenHarmonyInjectedSharedDependencies
