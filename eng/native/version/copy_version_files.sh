@@ -3,6 +3,7 @@
 __VersionFolder="$(cd "$(dirname "$0")"; pwd -P)"
 __RepoRoot="$(cd "$(dirname "$__VersionFolder")/../../"; pwd -P)"
 __ArtifactsObjDir="${__ArtifactsObjDir:-$__RepoRoot/artifacts/obj}"
+mkdir -p "$__ArtifactsObjDir"
 
 for path in "${__VersionFolder}/"*{.h,.c}; do
     if [[ "$(basename $path)" == _version.c ]]; then

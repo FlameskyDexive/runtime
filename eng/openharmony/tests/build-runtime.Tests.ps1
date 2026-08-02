@@ -236,6 +236,60 @@ exit /b 0
 }
 
 Describe 'OpenHarmony runtime matrix' {
+    It 'passes a custom catalog path through to the build entry point' {
+        $artifactsBaseRoot = Join-Path $TestDrive 'catalog-output'
+        $catalogPath = Join-Path $TestDrive 'custom-catalog.json'
+        $fakeBuildScript = Join-Path $TestDrive 'fake-catalog-build-runtime.ps1'
+        $receivedPath = Join-Path $TestDrive 'received-catalog-path.txt'
+        Copy-Item -LiteralPath (Join-Path $repoRoot 'eng\openharmony\sdk-catalog.json') -Destination $catalogPath
+        @'
+[CmdletBinding()]
+param(
+    [int] $ApiLevel,
+    [string] $SdkRoot,
+    [string] $Architecture,
+    [string] $Configuration,
+    [string] $ArtifactsRoot,
+    [string] $OpenSslRoot,
+    [string] $IcuRoot,
+    [string] $CatalogPath,
+    [switch] $ConfigureOnly
+)
+Set-Content -LiteralPath $env:OHOS_MATRIX_TEST_CATALOG_PATH -Value $CatalogPath -Encoding Ascii
+New-Item -ItemType Directory -Path $ArtifactsRoot -Force | Out-Null
+@{ sourceDirty = $false; sourceCommit = 'catalog-test' } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $ArtifactsRoot 'runtime-build-provenance.json') -Encoding Ascii
+'@ | Set-Content -LiteralPath $fakeBuildScript -Encoding Ascii
+
+        $oldPath = [Environment]::GetEnvironmentVariable('OHOS_MATRIX_TEST_CATALOG_PATH', 'Process')
+        try {
+            [Environment]::SetEnvironmentVariable('OHOS_MATRIX_TEST_CATALOG_PATH', $receivedPath, 'Process')
+            $result = & $matrixScriptPath `
+                -SdkRoot $TestDrive `
+                -Apis 13 `
+                -Architectures x64 `
+                -ConfigureOnly `
+                -ArtifactsBaseRoot $artifactsBaseRoot `
+                -CatalogPath $catalogPath `
+                -BuildScriptPath $fakeBuildScript
+        }
+        finally {
+            [Environment]::SetEnvironmentVariable('OHOS_MATRIX_TEST_CATALOG_PATH', $oldPath, 'Process')
+        }
+
+        $result.status | Should -Be 'CONFIGURED'
+        Get-Content -LiteralPath $receivedPath -Raw | Should -Be ($catalogPath + [Environment]::NewLine)
+    }
+
+    It 'creates a fresh isolated directory before copying version files' {
+        $versionScript = Get-Content -LiteralPath (Join-Path $repoRoot 'eng\native\version\copy_version_files.ps1') -Raw
+        $versionCommand = Get-Content -LiteralPath (Join-Path $repoRoot 'eng\native\version\copy_version_files.cmd') -Raw
+        $versionShell = Get-Content -LiteralPath (Join-Path $repoRoot 'eng\native\version\copy_version_files.sh') -Raw
+
+        $versionScript | Should -Match 'New-Item -ItemType Directory.*artifactsObjDir'
+        $versionCommand | Should -Match 'if not exist "%__ArtifactsObjDir%" md "%__ArtifactsObjDir%"'
+        $versionShell | Should -Match 'mkdir -p "\$__ArtifactsObjDir"'
+    }
+
     It 'rejects API25 before creating an artifacts root' {
         $artifactsBaseRoot = Join-Path $TestDrive 'api25-output'
 
@@ -285,6 +339,7 @@ param(
     [string] $ArtifactsRoot,
     [string] $OpenSslRoot,
     [string] $IcuRoot,
+    [string] $CatalogPath,
     [switch] $ConfigureOnly
 )
 Add-Content -LiteralPath $env:OHOS_MATRIX_TEST_CALL_LOG -Value $ApiLevel -Encoding Ascii
@@ -330,6 +385,7 @@ param(
     [string] $ArtifactsRoot,
     [string] $OpenSslRoot,
     [string] $IcuRoot,
+    [string] $CatalogPath,
     [switch] $ConfigureOnly
 )
 New-Item -ItemType Directory -Path $ArtifactsRoot -Force | Out-Null
@@ -337,7 +393,7 @@ New-Item -ItemType Directory -Path $ArtifactsRoot -Force | Out-Null
 '@ | Set-Content -LiteralPath $fakeBuildScript -Encoding Ascii
 @'
 [CmdletBinding()]
-param([string] $ArtifactsRoot)
+param([string] $ArtifactsRoot, [string] $CatalogPath)
 '@ | Set-Content -LiteralPath $fakeVerifyScript -Encoding Ascii
 
         {

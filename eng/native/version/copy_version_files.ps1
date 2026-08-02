@@ -4,6 +4,7 @@ $artifactsObjDir = $env:__ArtifactsObjDir
 if ([string]::IsNullOrWhiteSpace($artifactsObjDir)) {
     $artifactsObjDir = Join-Path $RepoRoot 'artifacts\obj'
 }
+New-Item -ItemType Directory -Path $artifactsObjDir -Force | Out-Null
 
 Get-ChildItem -Path "$VersionFolder" -Filter "_version.*" | ForEach-Object {
     $path = $_.FullName

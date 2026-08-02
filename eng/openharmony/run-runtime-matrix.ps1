@@ -139,6 +139,7 @@ foreach ($api in $Apis) {
                 ArtifactsRoot = $caseRoot
                 OpenSslRoot = Join-Path $DependencyRoot "openssl\$ohosArch"
                 IcuRoot = Join-Path $DependencyRoot "icu\$ohosArch"
+                CatalogPath = $CatalogPath
                 ConfigureOnly = [bool]$ConfigureOnly
             }
             & $BuildScriptPath @buildArguments
@@ -160,14 +161,16 @@ foreach ($api in $Apis) {
                     -ApiLevel $api `
                     -Architecture $architecture `
                     -Configuration $Configuration `
-                    -ArtifactsRoot $caseRoot
+                    -ArtifactsRoot $caseRoot `
+                    -CatalogPath $CatalogPath
                 if ($LASTEXITCODE -notin @(0, $null)) {
                     throw "OpenHarmony runtime verification exited with code $LASTEXITCODE."
                 }
                 $sdk = & (Join-Path $PSScriptRoot 'validate-sdk.ps1') `
                     -SdkRoot $SdkRoot `
                     -ApiLevel $api `
-                    -Architecture $architecture
+                    -Architecture $architecture `
+                    -CatalogPath $CatalogPath
                 $ridArchitecture = if ($architecture -eq 'arm64') { 'arm64' } else { 'x64' }
                 $nativeOutput = Join-Path $caseRoot "bin\microsoft.netcore.app.runtime.linux-musl-$ridArchitecture\$Configuration\runtimes\linux-musl-$ridArchitecture\native"
                 $llvmNm = Join-Path (Split-Path $sdk.Clang) 'llvm-nm.exe'

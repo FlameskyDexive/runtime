@@ -16,6 +16,8 @@ param(
 
     [string] $ArtifactsRoot,
 
+    [string] $CatalogPath = (Join-Path $PSScriptRoot 'sdk-catalog.json'),
+
     [switch] $ConfigureOnly,
 
     [switch] $DryRun
@@ -73,11 +75,13 @@ function Assert-DependencyMetadata {
 $sdk = & (Join-Path $PSScriptRoot 'validate-sdk.ps1') `
     -SdkRoot $SdkRoot `
     -ApiLevel $ApiLevel `
-    -Architecture $Architecture
+    -Architecture $Architecture `
+    -CatalogPath $CatalogPath
 $dependencySdk = & (Join-Path $PSScriptRoot 'validate-sdk.ps1') `
     -SdkRoot $SdkRoot `
     -ApiLevel 15 `
-    -Architecture $Architecture
+    -Architecture $Architecture `
+    -CatalogPath $CatalogPath
 
 if ([string]::IsNullOrWhiteSpace($OpenSslRoot)) {
     $OpenSslRoot = Join-Path $repoRoot "artifacts\openharmony\dependencies\openssl\$($sdk.OhosArch)"

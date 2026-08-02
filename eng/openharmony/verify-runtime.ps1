@@ -10,7 +10,9 @@ param(
     [ValidateSet('Debug', 'Checked', 'Release')]
     [string] $Configuration = 'Release',
 
-    [string] $ArtifactsRoot
+    [string] $ArtifactsRoot,
+
+    [string] $CatalogPath = (Join-Path $PSScriptRoot 'sdk-catalog.json')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -19,7 +21,8 @@ Import-Module (Join-Path $PSScriptRoot 'OpenHarmonyBuild.psm1') -Force
 $sdk = & (Join-Path $PSScriptRoot 'validate-sdk.ps1') `
     -SdkRoot $SdkRoot `
     -ApiLevel $ApiLevel `
-    -Architecture $Architecture
+    -Architecture $Architecture `
+    -CatalogPath $CatalogPath
 
 function Get-GitValue {
     param(
