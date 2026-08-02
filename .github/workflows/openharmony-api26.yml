@@ -31,18 +31,25 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'OpenHarmony changes must remain based on v10.0.10.' }
           git diff --check
       - name: Select the compatible Pester runtime
-        shell: powershell
+        shell: pwsh
         run: |
-          if (-not (Get-Module -ListAvailable -Name Pester -RequiredVersion 3.4.0)) {
-            Install-Module Pester -RequiredVersion 3.4.0 -Scope CurrentUser -Force -SkipPublisherCheck
+          if (-not (Get-Module -ListAvailable -Name Pester -RequiredVersion 5.6.1)) {
+            Install-Module Pester -RequiredVersion 5.6.1 -Scope CurrentUser -Force -SkipPublisherCheck
           }
-          Import-Module Pester -RequiredVersion 3.4.0 -Force
+          Import-Module Pester -RequiredVersion 5.6.1 -Force
       - name: Run OpenHarmony Pester suite
-        shell: powershell
+        shell: pwsh
         run: |
-          Import-Module Pester -RequiredVersion 3.4.0 -Force
+          Import-Module Pester -RequiredVersion 5.6.1 -Force
           New-Item -ItemType Directory -Force artifacts | Out-Null
-          $result = Invoke-Pester -Script .\eng\openharmony\tests -OutputFormat NUnitXml -OutputFile .\artifacts\openharmony-pester.xml -PassThru
+          $configuration = New-PesterConfiguration
+          $configuration.Run.Path = '.\eng\openharmony\tests'
+          $configuration.Run.PassThru = $true
+          $configuration.Output.Verbosity = 'Detailed'
+          $configuration.TestResult.Enabled = $true
+          $configuration.TestResult.OutputPath = '.\artifacts\openharmony-pester.xml'
+          $configuration.TestResult.OutputFormat = 'NUnitXml'
+          $result = Invoke-Pester -Configuration $configuration
           if ($result.FailedCount -ne 0) { throw "OpenHarmony Pester suite failed: $($result.FailedCount) test(s)." }
 
   toolchain-matrix:

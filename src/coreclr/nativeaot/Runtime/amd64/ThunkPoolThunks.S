@@ -37,7 +37,7 @@
     .endr
 .endm
 
-#ifdef TARGET_APPLE
+#if defined(TARGET_APPLE) || defined(TARGET_OPENHARMONY)
 // Thunk pool
     .text
     .p2align PAGE_SIZE_LOG2
@@ -47,6 +47,10 @@ PATCH_LABEL ThunkPool
     THUNKS_PAGE_BLOCK
     .endr
     .p2align PAGE_SIZE_LOG2
+#ifdef TARGET_OPENHARMONY
+    .zero THUNKS_MAP_SIZE
+    .p2align PAGE_SIZE_LOG2
+#endif
 #else
 #error Unsupported OS
 #endif

@@ -1,5 +1,7 @@
-$modulePath = Join-Path $PSScriptRoot '..\OpenHarmonyBuild.psm1'
-Import-Module $modulePath -Force
+BeforeAll {
+    $modulePath = Join-Path $PSScriptRoot '..\OpenHarmonyBuild.psm1'
+    Import-Module $modulePath -Force
+}
 
 Describe 'OpenHarmony runtime build invocation' {
     It 'uses API15 and the official arm64 toolchain without a Linux rootfs' {
@@ -26,22 +28,22 @@ Describe 'OpenHarmony runtime build invocation' {
             -IcuRoot 'C:\icu' `
             -Configuration Release
 
-        $invocation.Command | Should Be 'C:\runtime\build.cmd'
-        ($invocation.Arguments -contains 'clr.nativeaotruntime+clr.nativeaotlibs+libs') | Should Be $true
-        ($invocation.Arguments -contains 'clr.aot+libs') | Should Be $false
-        ($invocation.Arguments -contains 'arm64') | Should Be $true
-        ($invocation.Arguments -contains 'openharmony') | Should Be $true
-        ($invocation.Arguments -contains '/p:FeatureXplatEventSource=false') | Should Be $true
-        $invocation.Environment.OHOS_API_LEVEL | Should Be '15'
-        $invocation.Environment.OHOS_ARCH | Should Be 'arm64-v8a'
-        $invocation.Environment.OHOS_TARGET_TRIPLE | Should Be 'aarch64-linux-ohos'
-        $invocation.Environment.OHOS_SYSROOT | Should Be $sdk.Sysroot
-        $invocation.Environment.OHOS_TOOLCHAIN_FILE | Should Be $sdk.ToolchainFile
-        $invocation.Environment.OHOS_OPENSSL_ROOT | Should Be 'C:\openssl\arm64-v8a'
-        $invocation.Environment.OHOS_ICU_ROOT | Should Be 'C:\icu'
-        $invocation.Environment.TARGET_BUILD_ARCH | Should Be 'arm64'
-        ($invocation.RemoveEnvironment -contains 'ROOTFS_DIR') | Should Be $true
-        ($invocation.Environment.Keys -contains 'ROOTFS_DIR') | Should Be $false
+        $invocation.Command | Should -Be 'C:\runtime\build.cmd'
+        ($invocation.Arguments -contains 'clr.nativeaotruntime+clr.nativeaotlibs+libs') | Should -Be $true
+        ($invocation.Arguments -contains 'clr.aot+libs') | Should -Be $false
+        ($invocation.Arguments -contains 'arm64') | Should -Be $true
+        ($invocation.Arguments -contains 'openharmony') | Should -Be $true
+        ($invocation.Arguments -contains '/p:FeatureXplatEventSource=false') | Should -Be $true
+        $invocation.Environment.OHOS_API_LEVEL | Should -Be '15'
+        $invocation.Environment.OHOS_ARCH | Should -Be 'arm64-v8a'
+        $invocation.Environment.OHOS_TARGET_TRIPLE | Should -Be 'aarch64-linux-ohos'
+        $invocation.Environment.OHOS_SYSROOT | Should -Be $sdk.Sysroot
+        $invocation.Environment.OHOS_TOOLCHAIN_FILE | Should -Be $sdk.ToolchainFile
+        $invocation.Environment.OHOS_OPENSSL_ROOT | Should -Be 'C:\openssl\arm64-v8a'
+        $invocation.Environment.OHOS_ICU_ROOT | Should -Be 'C:\icu'
+        $invocation.Environment.TARGET_BUILD_ARCH | Should -Be 'arm64'
+        ($invocation.RemoveEnvironment -contains 'ROOTFS_DIR') | Should -Be $true
+        ($invocation.Environment.Keys -contains 'ROOTFS_DIR') | Should -Be $false
     }
 
     It 'maps x64 and adds configure-only without changing the SDK contract' {
@@ -68,15 +70,15 @@ Describe 'OpenHarmony runtime build invocation' {
             -Configuration Checked `
             -ConfigureOnly
 
-        ($invocation.Arguments -contains 'x64') | Should Be $true
-        ($invocation.Arguments -contains 'Checked') | Should Be $true
-        ($invocation.Arguments -contains '/p:ConfigureOnly=true') | Should Be $true
-        $invocation.Environment.OHOS_ARCH | Should Be 'x86_64'
-        $invocation.Environment.OHOS_API_LEVEL | Should Be '26'
-        $invocation.Environment.OHOS_TARGET_TRIPLE | Should Be 'x86_64-linux-ohos'
-        $invocation.Environment.OHOS_OPENSSL_ROOT | Should Be 'C:\openssl\x86_64'
-        $invocation.Environment.OHOS_ICU_ROOT | Should Be 'C:\icu'
-        $invocation.Environment.TARGET_BUILD_ARCH | Should Be 'x64'
+        ($invocation.Arguments -contains 'x64') | Should -Be $true
+        ($invocation.Arguments -contains 'Checked') | Should -Be $true
+        ($invocation.Arguments -contains '/p:ConfigureOnly=true') | Should -Be $true
+        $invocation.Environment.OHOS_ARCH | Should -Be 'x86_64'
+        $invocation.Environment.OHOS_API_LEVEL | Should -Be '26'
+        $invocation.Environment.OHOS_TARGET_TRIPLE | Should -Be 'x86_64-linux-ohos'
+        $invocation.Environment.OHOS_OPENSSL_ROOT | Should -Be 'C:\openssl\x86_64'
+        $invocation.Environment.OHOS_ICU_ROOT | Should -Be 'C:\icu'
+        $invocation.Environment.TARGET_BUILD_ARCH | Should -Be 'x64'
     }
 
     It 'passes arguments and restores process environment after the build command exits' {
@@ -116,13 +118,13 @@ exit /b 0
             Invoke-OpenHarmonyBuild -Invocation $invocation
 
             $lines = Get-Content $output
-            ($lines -contains "cwd=$tempRoot") | Should Be $true
-            ($lines -contains 'api=15') | Should Be $true
-            ($lines -contains 'rootfs=') | Should Be $true
-            ($lines -contains 'args=clr.aot+libs -arch arm64') | Should Be $true
-            [Environment]::GetEnvironmentVariable('OHOS_API_LEVEL', 'Process') | Should Be 'old-api'
-            [Environment]::GetEnvironmentVariable('ROOTFS_DIR', 'Process') | Should Be 'C:\linux-rootfs'
-            [Environment]::GetEnvironmentVariable('OHOS_TEST_OUTPUT', 'Process') | Should Be $output
+            ($lines -contains "cwd=$tempRoot") | Should -Be $true
+            ($lines -contains 'api=15') | Should -Be $true
+            ($lines -contains 'rootfs=') | Should -Be $true
+            ($lines -contains 'args=clr.aot+libs -arch arm64') | Should -Be $true
+            [Environment]::GetEnvironmentVariable('OHOS_API_LEVEL', 'Process') | Should -Be 'old-api'
+            [Environment]::GetEnvironmentVariable('ROOTFS_DIR', 'Process') | Should -Be 'C:\linux-rootfs'
+            [Environment]::GetEnvironmentVariable('OHOS_TEST_OUTPUT', 'Process') | Should -Be $output
         }
         finally {
             [Environment]::SetEnvironmentVariable('OHOS_API_LEVEL', $oldApi, 'Process')
