@@ -179,7 +179,7 @@ foreach ($api in $Apis) {
 
             $summary.status = if ($ConfigureOnly) { 'CONFIGURED' } else { 'PASS' }
             $summary.buildExitCode = 0
-            $summary.provenancePath = $provenancePath
+            $summary.provenancePath = ([IO.Path]::GetRelativePath($ArtifactsBaseRoot, $provenancePath) -replace '\\', '/')
             $summary.provenanceSha256 = (Get-FileHash -LiteralPath $provenancePath -Algorithm SHA256).Hash
             $summary.sourceCommit = [string]$provenance.sourceCommit
             $summary.sourceDirty = [bool]$provenance.sourceDirty

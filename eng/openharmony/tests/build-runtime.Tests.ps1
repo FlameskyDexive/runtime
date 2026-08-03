@@ -278,6 +278,8 @@ New-Item -ItemType Directory -Path $ArtifactsRoot -Force | Out-Null
 
         $result.status | Should -Be 'CONFIGURED'
         Get-Content -LiteralPath $receivedPath -Raw | Should -Be ($catalogPath + [Environment]::NewLine)
+        [IO.Path]::IsPathRooted([string]$result.provenancePath) | Should -Be $false
+        $result.provenancePath | Should -Be 'api13/x64/Release/runtime-build-provenance.json'
     }
 
     It 'creates a fresh isolated directory before copying version files' {
